@@ -3,6 +3,13 @@ import { onMounted, ref } from 'vue'
 
 const myCanvas = ref(null)
 const ctx = ref(null)
+const history = ref([])
+const currentIndex = ref(0)
+const isDrawing = ref(false)
+const maxHistorySteps = 3
+const canRedo = ref(false)
+let lastX = 0
+let lastY = 0
 
 onMounted(() => {
   // 初始化时获取绘图上下文
@@ -12,22 +19,15 @@ onMounted(() => {
   }
 })
 
-let isDrawing = false
-let lastX = 0
-let lastY = 0
-let history = []
-let currentIndex = 0
-const maxHistorySteps = 3
-
 const onMousedown = (event) => {
-  isDrawing = true
+  isDrawing.value = true
   ;[lastX, lastY] = [
     event.clientX - myCanvas.value.offsetLeft,
     event.clientY - myCanvas.value.offsetTop
   ]
 }
 const onMousemove = (event) => {
-  if (!isDrawing) return
+  if (!isDrawing.value) return
   ctx.value.beginPath()
   ctx.value.lineWidth = 5 // 设置线条宽度
   ctx.value.moveTo(lastX, lastY)
@@ -42,30 +42,42 @@ const onMousemove = (event) => {
 
 // 在mousemove事件内部添加保存历史记录的逻辑，需要保存的数量比最大值多一个，因为要还原最后一个
 const onMouseup = (event) => {
-  if (isDrawing) {
-    if (history.length === maxHistorySteps + 1) {
-      history.shift()
-    }
+  if (isDrawing.value) {
     saveCurrent()
   }
-  isDrawing = false
+  isDrawing.value = false
 }
 
 const saveCurrent = () => {
+  if (currentIndex.value !== history.value.length - 1) {
+    history.value.splice(currentIndex.value + 1)
+  }
+  if (history.value.length === maxHistorySteps + 1) {
+    history.value.shift()
+  }
   const imageData = ctx.value.getImageData(0, 0, myCanvas.value.width, myCanvas.value.height)
-  history.push(imageData)
-  currentIndex = history.length - 1
-  console.log(history.length, currentIndex)
+  history.value.push(imageData)
+  currentIndex.value = history.value.length - 1
+  canRedo.value = false
 }
 
 const undo = () => {
-  console.log(history.length, currentIndex)
-  if (currentIndex > 0) {
-    ctx.value.putImageData(history[currentIndex - 1], 0, 0)
-    history.pop()
-    currentIndex = history.length - 1
+  if (currentIndex.value > 0) {
+    ctx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
+    currentIndex.value--
+    canRedo.value = true
   } else {
     console.log('无法撤销，已在第一步')
+  }
+}
+
+const redo = () => {
+  if (canRedo.value) {
+    ctx.value.putImageData(history.value[currentIndex.value + 1], 0, 0)
+    currentIndex.value++
+    canRedo.value = false
+  } else {
+    console.log('无法重做')
   }
 }
 </script>
@@ -80,4 +92,11 @@ const undo = () => {
     @mouseup="onMouseup"
   ></canvas>
   <button @click="undo">撤销</button>
+  <button @click="redo">重做</button>
 </template>
+
+<style scoped>
+canvas {
+  border: 1px solid #000;
+}
+</style>
