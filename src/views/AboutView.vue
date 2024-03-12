@@ -82,11 +82,11 @@ const onClick = (event: any) => {
     } else {
       pointArr.value.push({ x: originX.value, y: originY.value })
       if (pointArr.value.length === 1) {
-        pointGroup.value.push([pointArr.value])
+        pointGroup.value.push(pointArr.value)
       } else {
-        pointGroup.value[pointGroup.value.length - 1] = [pointArr.value]
+        pointGroup.value[pointGroup.value.length - 1] = pointArr.value
       }
-      console.log(pointGroup.value)
+      console.log(JSON.stringify(pointGroup.value))
 
       if (pointArr.value.length > 1) {
         toDrawLine(
