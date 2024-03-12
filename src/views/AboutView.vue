@@ -8,7 +8,7 @@ var clickCtx = ref()
 var previewCanvas = ref()
 var previewCtx = ref()
 
-const pointArr = ref<any[]>([])
+const pointArr = ref<{ x: number; y: number }[]>([])
 // 连线鼠标的点位
 const originX = ref()
 const originY = ref()
@@ -18,25 +18,18 @@ const currentIndex = ref(0)
 const maxHistorySteps = 3
 const canRedo = ref(false)
 
+const pointGroup = ref<{ x: number; y: number }[][]>([])
+
 const getLastXY = (arr: any) => {
-  return {
-    x: arr[arr.length - 1]?.[0],
-    y: arr[arr.length - 1]?.[1]
-  }
+  return arr[arr.length - 1] || {}
 }
 
 const getFirstXY = (arr: any) => {
-  return {
-    x: arr[0]?.[0],
-    y: arr[0]?.[1]
-  }
+  return arr[0] || {}
 }
 
 const getSecondFromEndXY = (arr: any) => {
-  return {
-    x: arr[arr.length - 2]?.[0],
-    y: arr[arr.length - 2]?.[1]
-  }
+  return arr[arr.length - 2] || {}
 }
 
 const checkRangeWithError = (x1: any, y1: any, x2: any, y2: any, range: any) => {
@@ -87,7 +80,14 @@ const onClick = (event: any) => {
       fillArea(pointArr.value)
       pointArr.value = []
     } else {
-      pointArr.value.push([originX.value, originY.value])
+      pointArr.value.push({ x: originX.value, y: originY.value })
+      if (pointArr.value.length === 1) {
+        pointGroup.value.push([pointArr.value])
+      } else {
+        pointGroup.value[pointGroup.value.length - 1] = [pointArr.value]
+      }
+      console.log(pointGroup.value)
+
       if (pointArr.value.length > 1) {
         toDrawLine(
           previewCtx.value,
@@ -122,7 +122,7 @@ const fillArea = (points: any) => {
     previewCtx.value.beginPath()
     previewCtx.value.moveTo(firstPoint.x, firstPoint.y)
     for (let i = 1; i < points.length; i++) {
-      previewCtx.value.lineTo(points[i][0], points[i][1])
+      previewCtx.value.lineTo(points[i].x, points[i].y)
     }
     previewCtx.value.closePath()
     previewCtx.value.fillStyle = '#FF0000' // 颜色自定义
