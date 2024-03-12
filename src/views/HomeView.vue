@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-const myCanvas = ref(null)
-const ctx = ref(null)
-const imgCanvas = ref(null)
-const imgCtx = ref(null)
-const history = ref([])
+const myCanvas = ref()
+const ctx = ref()
+const imgCanvas = ref()
+const imgCtx = ref()
+const history = ref<any[]>([])
 const currentIndex = ref(0)
 const isDrawing = ref(false)
 const maxHistorySteps = 3
@@ -15,14 +15,14 @@ let lastY = 0
 const width = ref(25)
 const color = ref('blue')
 
-const onMousedown = (event) => {
+const onMousedown = (event: any) => {
   isDrawing.value = true
   ;[lastX, lastY] = [
     event.clientX - myCanvas.value.offsetLeft,
     event.clientY - myCanvas.value.offsetTop
   ]
 }
-const onMousemove = (event) => {
+const onMousemove = (event: any) => {
   if (!isDrawing.value) return
   ctx.value.beginPath()
   ctx.value.lineWidth = width.value // 设置线条宽度
@@ -39,7 +39,7 @@ const onMousemove = (event) => {
 }
 
 // 在mousemove事件内部添加保存历史记录的逻辑，需要保存的数量比最大值多一个，因为要还原最后一个
-const onMouseup = (event) => {
+const onMouseup = (event: any) => {
   if (isDrawing.value) {
     saveCurrent()
   }
@@ -86,7 +86,7 @@ const save = () => {
   setImg()
 }
 
-const downloadImg = (canvas) => {
+const downloadImg = (canvas: any) => {
   const dataURL = canvas.toDataURL('image/png')
   const link = document.createElement('a')
   link.download = 'canvas-image.png'

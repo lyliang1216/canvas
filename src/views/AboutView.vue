@@ -2,49 +2,51 @@
 import { onMounted, ref } from 'vue'
 
 // 点击的画布
-var clickCanvas = ref(null)
-var clickCtx = ref(null)
+var clickCanvas = ref()
+var clickCtx = ref()
 // 实际看的画布
-var previewCanvas = ref(null)
-var previewCtx = ref(null)
+var previewCanvas = ref()
+var previewCtx = ref()
 
-const pointArr = ref([])
-const originX = ref(null)
-const originY = ref(null)
-const history = ref([])
+const pointArr = ref<any[]>([])
+// 连线鼠标的点位
+const originX = ref()
+const originY = ref()
+// 历史画布记录
+const history = ref<any[]>([])
 const currentIndex = ref(0)
 const maxHistorySteps = 3
 const canRedo = ref(false)
 
-const getLastXY = (arr) => {
+const getLastXY = (arr: any) => {
   return {
     x: arr[arr.length - 1]?.[0],
     y: arr[arr.length - 1]?.[1]
   }
 }
 
-const getFirstXY = (arr) => {
+const getFirstXY = (arr: any) => {
   return {
     x: arr[0]?.[0],
     y: arr[0]?.[1]
   }
 }
 
-const getSecondFromEndXY = (arr) => {
+const getSecondFromEndXY = (arr: any) => {
   return {
     x: arr[arr.length - 2]?.[0],
     y: arr[arr.length - 2]?.[1]
   }
 }
 
-const checkRangeWithError = (x1, y1, x2, y2, range) => {
+const checkRangeWithError = (x1: any, y1: any, x2: any, y2: any, range: any) => {
   const dx = Math.abs(x1 - x2)
   const dy = Math.abs(y1 - y2)
 
   return dx <= range && dy <= range
 }
 
-const toDrawLine = (ctx, x, y, toX, toY) => {
+const toDrawLine = (ctx: any, x: any, y: any, toX: any, toY: any) => {
   // 绘制新的线条
   ctx.beginPath()
   ctx.moveTo(x, y)
@@ -54,7 +56,7 @@ const toDrawLine = (ctx, x, y, toX, toY) => {
   ctx.stroke()
 }
 
-const onClick = (event) => {
+const onClick = (event: any) => {
   // 获取鼠标点击相对于canvas的位置
   var rect = clickCanvas.value.getBoundingClientRect()
   originX.value = event.clientX - rect.left
@@ -82,6 +84,7 @@ const onClick = (event) => {
         getFirstXY(pointArr.value).x,
         getFirstXY(pointArr.value).y
       )
+      fillArea(pointArr.value)
       pointArr.value = []
     } else {
       pointArr.value.push([originX.value, originY.value])
@@ -111,6 +114,22 @@ const onClick = (event) => {
   }
 }
 
+const fillArea = (points: any) => {
+  // 填充闭合路径
+  if (points.length > 2) {
+    let firstPoint = points[0]
+    points.push(firstPoint) // 将第一个点添加到最后，形成闭合区域
+    previewCtx.value.beginPath()
+    previewCtx.value.moveTo(firstPoint.x, firstPoint.y)
+    for (let i = 1; i < points.length; i++) {
+      previewCtx.value.lineTo(points[i][0], points[i][1])
+    }
+    previewCtx.value.closePath()
+    previewCtx.value.fillStyle = '#FF0000' // 颜色自定义
+    previewCtx.value.fill()
+  }
+}
+
 const saveCurrent = () => {
   if (currentIndex.value !== history.value.length - 1) {
     history.value.splice(currentIndex.value + 1)
@@ -130,13 +149,14 @@ const saveCurrent = () => {
   canRedo.value = false
 }
 
-const onDblclick = (event) => {
+const onDblclick = (event: any) => {
   // 获取鼠标双击相对于canvas的位置
   var rect = clickCanvas.value.getBoundingClientRect()
   var x = event.clientX - rect.left
   var y = event.clientY - rect.top
   if (pointArr.value.length > 2) {
     toDrawLine(previewCtx.value, x, y, getFirstXY(pointArr.value).x, getFirstXY(pointArr.value).y)
+    fillArea(pointArr.value)
     pointArr.value = []
   }
 }
@@ -147,14 +167,12 @@ const clearLine = () => {
 }
 
 // 绘制线条函数
-const drawLine = (e) => {
+const drawLine = (e: any) => {
   if (!e) e = window.event // 兼容IE
   var mouseX = e.clientX - clickCanvas.value.offsetLeft
   var mouseY = e.clientY - clickCanvas.value.offsetTop
-
   // 清除上一次的线条
   clearLine()
-
   toDrawLine(
     clickCtx.value,
     getLastXY(pointArr.value).x,
