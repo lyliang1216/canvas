@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 
 const myCanvas = ref(null)
 const ctx = ref(null)
+const imgCanvas = ref(null)
+const imgCtx = ref(null)
 const history = ref([])
 const currentIndex = ref(0)
 const isDrawing = ref(false)
@@ -10,14 +12,8 @@ const maxHistorySteps = 3
 const canRedo = ref(false)
 let lastX = 0
 let lastY = 0
-
-onMounted(() => {
-  // 初始化时获取绘图上下文
-  if (myCanvas.value) {
-    ctx.value = myCanvas.value.getContext('2d')
-    saveCurrent()
-  }
-})
+const width = ref(25)
+const color = ref('blue')
 
 const onMousedown = (event) => {
   isDrawing.value = true
@@ -29,7 +25,9 @@ const onMousedown = (event) => {
 const onMousemove = (event) => {
   if (!isDrawing.value) return
   ctx.value.beginPath()
-  ctx.value.lineWidth = 5 // 设置线条宽度
+  ctx.value.lineWidth = width.value // 设置线条宽度
+  ctx.value.strokeStyle = color.value // 设置线条宽度
+  ctx.value.lineCap = 'round' // 圆角线头
   ctx.value.moveTo(lastX, lastY)
   const [x, y] = [
     event.clientX - myCanvas.value.offsetLeft,
@@ -80,23 +78,73 @@ const redo = () => {
     console.log('无法重做')
   }
 }
+
+const save = () => {
+  imgCtx.value.drawImage(myCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
+  downloadImg(myCanvas.value)
+  downloadImg(imgCanvas.value)
+  setImg()
+}
+
+const downloadImg = (canvas) => {
+  const dataURL = canvas.toDataURL('image/png')
+  const link = document.createElement('a')
+  link.download = 'canvas-image.png'
+  link.href = dataURL
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+const setImg = () => {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'
+  img.onload = () => {
+    imgCtx.value.drawImage(img, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
+  }
+}
+
+onMounted(() => {
+  // 初始化时获取绘图上下文
+  if (myCanvas.value) {
+    ctx.value = myCanvas.value.getContext('2d')
+    saveCurrent()
+  }
+  if (imgCanvas.value) {
+    imgCtx.value = imgCanvas.value.getContext('2d')
+    setImg()
+  }
+})
 </script>
 
 <template>
   <canvas
+    id="myCanvas"
     ref="myCanvas"
-    width="500"
-    height="500"
+    width="800"
+    height="600"
     @mousedown="onMousedown"
     @mousemove="onMousemove"
     @mouseup="onMouseup"
   ></canvas>
+  <canvas id="imgCanvas" ref="imgCanvas" width="800" height="600"></canvas>
   <button @click="undo">撤销</button>
   <button @click="redo">重做</button>
+  <button @click="save">保存</button>
 </template>
 
 <style scoped>
 canvas {
   border: 1px solid #000;
+  position: fixed;
+  top: 100px;
+  left: 100px;
+}
+#myCanvas {
+  z-index: 2;
+}
+#imgCanvas {
+  z-index: 1;
 }
 </style>

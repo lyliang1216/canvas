@@ -3,8 +3,9 @@ import { RouterLink, RouterView } from 'vue-router'
 </script>
 
 <template>
-  <RouterLink to="/">Home</RouterLink>
-  <RouterLink to="/about">About</RouterLink>
+  <RouterLink to="/">画笔工具</RouterLink>
+  <span>---------------------------------</span>
+  <RouterLink to="/about">选区工具</RouterLink>
   <RouterView />
 </template>
 
