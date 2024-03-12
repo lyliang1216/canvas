@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watchEffect } from 'vue'
 
 // 点击的画布
 var clickCanvas = ref()
@@ -18,7 +18,10 @@ const currentIndex = ref(0)
 const maxHistorySteps = 3
 const canRedo = ref(false)
 
-const pointGroup = ref<{ x: number; y: number }[][]>([])
+const pointGroup = reactive<{ x: number; y: number }[][]>([])
+const pointAll = computed(() => pointGroup.flat())
+
+const pointIndex = ref(0)
 
 const getLastXY = (arr: any) => {
   return arr[arr.length - 1] || {}
@@ -54,7 +57,6 @@ const onClick = (event: any) => {
   var rect = clickCanvas.value.getBoundingClientRect()
   originX.value = event.clientX - rect.left
   originY.value = event.clientY - rect.top
-
   // 排除同一位置重复点击
   if (
     originX.value !== getLastXY(pointArr.value).x &&
@@ -63,8 +65,8 @@ const onClick = (event: any) => {
     // 最后点击了第一个点，就可以结束了
     if (
       checkRangeWithError(
-        originX.value,
-        originY.value,
+        originX,
+        originY,
         getFirstXY(pointArr.value).x,
         getFirstXY(pointArr.value).y,
         5
@@ -79,14 +81,16 @@ const onClick = (event: any) => {
       )
       fillArea(pointArr.value)
       pointArr.value = []
+      originX.value = undefined
+      originY.value = undefined
     } else {
       pointArr.value.push({ x: originX.value, y: originY.value })
+      pointIndex.value = pointArr.value.length - 1
       if (pointArr.value.length === 1) {
-        pointGroup.value.push(pointArr.value)
+        pointGroup.push(pointArr.value)
       } else {
-        pointGroup.value[pointGroup.value.length - 1] = pointArr.value
+        pointGroup[pointGroup.length - 1] = pointArr.value
       }
-      console.log(JSON.stringify(pointGroup.value))
 
       if (pointArr.value.length > 1) {
         toDrawLine(
@@ -158,6 +162,8 @@ const onDblclick = (event: any) => {
     toDrawLine(previewCtx.value, x, y, getFirstXY(pointArr.value).x, getFirstXY(pointArr.value).y)
     fillArea(pointArr.value)
     pointArr.value = []
+    originX.value = undefined
+    originY.value = undefined
   }
 }
 
@@ -171,29 +177,39 @@ const drawLine = (e: any) => {
   if (!e) e = window.event // 兼容IE
   var mouseX = e.clientX - clickCanvas.value.offsetLeft
   var mouseY = e.clientY - clickCanvas.value.offsetTop
+
   // 清除上一次的线条
   clearLine()
-  toDrawLine(
-    clickCtx.value,
-    getLastXY(pointArr.value).x,
-    getLastXY(pointArr.value).y,
-    mouseX,
-    mouseY
-  )
+  if (pointAll.value.length) {
+    toDrawLine(clickCtx.value, originX.value, originY.value, mouseX, mouseY)
+  }
 }
 
+//撤销
 const undo = () => {
-  console.log(pointArr.value)
-
   if (currentIndex.value > 0) {
     previewCtx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
     currentIndex.value--
     canRedo.value = true
+    originX.value = pointAll.value[pointIndex.value - 1]?.x
+    originY.value = pointAll.value[pointIndex.value - 1]?.y
+    pointIndex.value--
+    pointArr.value.pop()
   } else {
     console.log('无法撤销，已在第一步')
   }
 }
-const redo = () => {}
+const redo = () => {
+  if (canRedo.value) {
+    console.log(pointAll.value, pointIndex.value)
+
+    // previewCtx.value.putImageData(history.value[currentIndex.value + 1], 0, 0)
+    // currentIndex.value++
+    // canRedo.value = false
+    // originX.value = pointAll.value[pointIndex.value + 1]?.x
+    // originY.value = pointAll.value[pointIndex.value + 1]?.y
+  }
+}
 
 onMounted(() => {
   if (clickCanvas.value) {
