@@ -18,15 +18,12 @@ const color = ref('blue')
 const downPoint = reactive<{ x: number; y: number }>({ x: 0, y: 0 })
 // 移动方向位置确定
 const linePoint = reactive<{ x: number; y: number }>({ x: 0, y: 0 })
-// x横向移动，后续位置以横向为准；y纵向移动，后续位置以纵向为准；c正中间(45°角)，后续位置以长的为准
-const linePosition = ref<'x' | 'y' | 'c'>('x')
 const isShiftDown = ref(false)
 
 // Shift键被按下
 const handleKeyDown = (e: any) => {
   if (e.key === 'Shift') {
     if (isDrawing.value && !isShiftDown.value) {
-      console.log('按下了')
       downPoint.x = lastX.value as number
       downPoint.y = lastY.value as number
     }
@@ -37,7 +34,6 @@ const handleKeyDown = (e: any) => {
 // Shift键被释放
 const handleKeyUp = (e: any) => {
   if (e.key === 'Shift') {
-    console.log('松开了')
     isShiftDown.value = false
     downPoint.x = 0
     downPoint.y = 0
@@ -53,63 +49,52 @@ const onMousedown = (event: any) => {
     event.clientY - myCanvas.value.offsetTop
   ]
   if (isShiftDown.value) {
-    console.log('按下并且鼠标开始了')
     downPoint.x = lastX.value
     downPoint.y = lastY.value
   }
 }
 
-/**
- * 计算与已知两点共线的第三点坐标。
- * @param {Object} point1 - 第一个已知点的坐标对象，包含属性{x, y}。
- * @param {Object} point2 - 第二个已知点的坐标对象，包含属性{x, y}。
- * @param {Number} knownCoordinate - 第三个点的已知坐标值，可能是横坐标（x）或纵坐标（y），具体取决于isHorizontal参数。
- * @param {Boolean} isHorizontal - 标记已知坐标是横坐标还是纵坐标。
- *   如果为true，表示knownCoordinate是横坐标x，函数将计算对应的纵坐标y；
- *   如果为false，表示knownCoordinate是纵坐标y，函数将计算对应的横坐标x。
- * @return {Number} 返回计算出的未知坐标值。
- */
-const calculateCoordinate = (
-  point1: { x: number; y: number },
-  point2: { x: number; y: number },
-  knownCoordinate: number,
-  isHorizontal: boolean
+// 根据AB两点的直线，获取P点x轴或y轴任一数值相同的，并且在直线AB上的点的坐标信息
+const getPosition = (
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  p: { x: number; y: number }
 ) => {
-  // 计算斜率
-  var slope = (point2.y - point1.y) / (point2.x - point1.x)
-  // 根据斜率计算位置
-  if (isHorizontal) {
-    return point1.y - (point1.x - knownCoordinate) * slope
-  } else {
-    return point1.x - (point1.y - knownCoordinate) / slope
+  // 获取P点垂直X轴相交AB时Y的位置
+  const getY = () => {
+    return ((p.x - a.x) / (b.x - a.x)) * (b.y - a.y) + a.y
   }
-}
-
-const getPosition = (x: number, y: number) => {
-  // console.log(downPoint, linePoint, { x, y })
-  switch (linePosition.value) {
-    case 'c': {
-      const xDistance = Math.abs(x - (linePoint.x || 0))
-      const yDistance = Math.abs(y - (linePoint.y || 0))
-      const params = xDistance > yDistance ? x : y
-      const otherParams = calculateCoordinate(downPoint, linePoint, params, false)
-      return {
-        x: xDistance > yDistance ? params : otherParams,
-        y: xDistance > yDistance ? otherParams : params
-      }
+  // 获取P点垂直Y轴相交AB时X的位置
+  const getX = () => {
+    return ((p.y - a.y) / (b.y - a.y)) * (b.x - a.x) + a.x
+  }
+  // 获取斜率
+  const getSlope = () => {
+    return Math.abs((b.y - a.y) / (b.x - a.x))
+  }
+  if (b.x === a.x && b.y !== a.y) {
+    //垂直于X轴
+    return {
+      x: a.x,
+      y: p.y
     }
-    case 'x': {
-      const otherParams = calculateCoordinate(downPoint, linePoint, x, false)
-      return {
-        x,
-        y: otherParams
-      }
+  } else if (b.y === a.y && b.x !== a.x) {
+    // 垂直于Y轴
+    return {
+      x: p.x,
+      y: a.y
     }
-    case 'y': {
-      const otherParams = calculateCoordinate(downPoint, linePoint, y, true)
+  } else {
+    // 没有垂直于任何一个轴，存在斜率
+    if (getSlope() < 1) {
       return {
-        x: otherParams,
-        y
+        x: p.x,
+        y: getY()
+      }
+    } else {
+      return {
+        x: getX(),
+        y: p.y
       }
     }
   }
@@ -126,23 +111,16 @@ const onMousemove = (event: any) => {
     event.clientY - myCanvas.value.offsetTop
   ]
   // 按下shift后移动距离超过10，才会确定准确的方向
-  if (isShiftDown.value && !linePoint.x && !linePoint.y) {
-    console.log('进来了')
-
+  if (isShiftDown.value && (!linePoint.x || !linePoint.y)) {
     const xDistance = Math.abs(x - downPoint.x)
     const yDistance = Math.abs(y - downPoint.y)
-    if (xDistance >= 1 && yDistance >= 1) {
+    if (xDistance >= 5 && yDistance >= 5) {
       linePoint.x = x
       linePoint.y = y
-      linePosition.value = xDistance === yDistance ? 'c' : xDistance > yDistance ? 'x' : 'y'
-      console.log('方向结果是' + linePosition.value)
     }
   }
   if (isShiftDown.value && linePoint.x && linePoint.y) {
-    const position = getPosition(x, y)
-    console.log('开始画')
-    console.log(position, x, y, '基准点位', downPoint, linePoint)
-    console.log('结束了')
+    const position = getPosition(downPoint, linePoint, { x, y })
     ctx.value.moveTo(lastX.value, lastY.value)
     ctx.value.lineTo(position.x, position.y)
     ctx.value.stroke()
