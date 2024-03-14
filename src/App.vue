@@ -4,8 +4,10 @@ import { RouterLink, RouterView } from 'vue-router'
 
 <template>
   <RouterLink to="/">画笔工具</RouterLink>
-  <span>---------------------------------</span>
+  <span>----</span>
   <RouterLink to="/about">选区工具</RouterLink>
+  <span>----</span>
+  <RouterLink to="/area">裁剪工具</RouterLink>
   <RouterView />
 </template>
 

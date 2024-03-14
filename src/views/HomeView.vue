@@ -49,6 +49,7 @@ const onMousedown = (event: any) => {
   ctx.value.lineWidth = width.value // 设置线条宽度
   ctx.value.strokeStyle = color.value // 设置线条宽度
   ctx.value.lineCap = 'round' // 圆角线头
+  ctx.value.lineJoin = 'round' // 相交连接处圆角
   ctx.value.moveTo(
     event.clientX - myCanvas.value.offsetLeft,
     event.clientY - myCanvas.value.offsetTop
