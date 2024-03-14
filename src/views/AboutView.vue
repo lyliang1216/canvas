@@ -7,6 +7,8 @@ var clickCtx = ref()
 // 实际看的画布
 var previewCanvas = ref()
 var previewCtx = ref()
+const imgCanvas = ref()
+const imgCtx = ref()
 
 const pointArr = ref<{ x: number; y: number }[]>([])
 // 连线鼠标的点位
@@ -222,12 +224,29 @@ const redo = () => {
   }
 }
 
+const save = () => {
+  imgCtx.value.drawImage(previewCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
+  downloadImg(previewCanvas.value)
+  downloadImg(imgCanvas.value)
+  setImg()
+}
+
+const downloadImg = (canvas: any) => {
+  const dataURL = canvas.toDataURL('image/png')
+  const link = document.createElement('a')
+  link.download = 'canvas-image.png'
+  link.href = dataURL
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 const setImg = () => {
   const img = new Image()
   img.crossOrigin = 'anonymous'
   img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'
   img.onload = () => {
-    previewCtx.value.drawImage(img, 0, 0, previewCanvas.value.width, previewCanvas.value.height)
+    imgCtx.value.drawImage(img, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
   }
 }
 
@@ -237,14 +256,17 @@ onMounted(() => {
   }
   if (previewCanvas.value) {
     previewCtx.value = previewCanvas.value.getContext('2d')
-    setImg()
     saveCurrent()
+  }
+  if (imgCanvas.value) {
+    imgCtx.value = imgCanvas.value.getContext('2d')
+    setImg()
   }
 })
 </script>
 
 <template>
-  <p>选区工具</p>
+  <span>-----选区工具</span>
   <canvas
     id="clickCanvas"
     ref="clickCanvas"
@@ -255,8 +277,10 @@ onMounted(() => {
     @mousemove="drawLine"
   ></canvas>
   <canvas id="previewCanvas" ref="previewCanvas" width="800" height="600"></canvas>
+  <canvas id="imgCanvas" ref="imgCanvas" width="800" height="600"></canvas>
   <button @click="undo">撤销</button>
   <button @click="redo">重做</button>
+  <button @click="save">保存</button>
 </template>
 
 <style scoped>

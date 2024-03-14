@@ -184,8 +184,8 @@ const redo = () => {
 }
 
 const save = () => {
-  imgCtx.value.drawImage(myCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
-  downloadImg(myCanvas.value)
+  imgCtx.value.drawImage(showCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
+  downloadImg(showCanvas.value)
   downloadImg(imgCanvas.value)
   setImg()
 }
@@ -233,7 +233,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <p>画笔工具</p>
+  <span>-----画笔工具</span>
   <canvas
     id="myCanvas"
     ref="myCanvas"
