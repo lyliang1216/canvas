@@ -3,6 +3,8 @@ import { onMounted, ref, onUnmounted, reactive } from 'vue'
 
 const myCanvas = ref()
 const ctx = ref()
+const showCanvas = ref()
+const showCtx = ref()
 const imgCanvas = ref()
 const imgCtx = ref()
 const history = ref<any[]>([])
@@ -10,10 +12,8 @@ const currentIndex = ref(0)
 const isDrawing = ref(false)
 const maxHistorySteps = 3
 const canRedo = ref(false)
-const lastX = ref<number | null>(null)
-const lastY = ref<number | null>(null)
 const width = ref(25)
-const color = ref('blue')
+const color = ref('rgba(255,255,255,0.8)')
 // 点击位置
 const downPoint = reactive<{ x: number; y: number }>({ x: 0, y: 0 })
 // 移动方向位置确定
@@ -23,10 +23,6 @@ const isShiftDown = ref(false)
 // Shift键被按下
 const handleKeyDown = (e: any) => {
   if (e.key === 'Shift') {
-    if (isDrawing.value && !isShiftDown.value) {
-      downPoint.x = lastX.value as number
-      downPoint.y = lastY.value as number
-    }
     isShiftDown.value = true
   }
 }
@@ -44,14 +40,19 @@ const handleKeyUp = (e: any) => {
 
 const onMousedown = (event: any) => {
   isDrawing.value = true
-  ;[lastX.value, lastY.value] = [
+  if (isShiftDown.value) {
+    downPoint.x = event.clientX - myCanvas.value.offsetLeft
+    downPoint.y = event.clientY - myCanvas.value.offsetTop
+  }
+
+  ctx.value.beginPath()
+  ctx.value.lineWidth = width.value // 设置线条宽度
+  ctx.value.strokeStyle = color.value // 设置线条宽度
+  ctx.value.lineCap = 'round' // 圆角线头
+  ctx.value.moveTo(
     event.clientX - myCanvas.value.offsetLeft,
     event.clientY - myCanvas.value.offsetTop
-  ]
-  if (isShiftDown.value) {
-    downPoint.x = lastX.value
-    downPoint.y = lastY.value
-  }
+  )
 }
 
 // 根据AB两点的直线，获取P点x轴或y轴任一数值相同的，并且在直线AB上的点的坐标信息
@@ -102,10 +103,6 @@ const getPosition = (
 
 const onMousemove = (event: any) => {
   if (!isDrawing.value) return
-  ctx.value.beginPath()
-  ctx.value.lineWidth = width.value // 设置线条宽度
-  ctx.value.strokeStyle = color.value // 设置线条宽度
-  ctx.value.lineCap = 'round' // 圆角线头
   const [x, y] = [
     event.clientX - myCanvas.value.offsetLeft,
     event.clientY - myCanvas.value.offsetTop
@@ -119,23 +116,25 @@ const onMousemove = (event: any) => {
       linePoint.y = y
     }
   }
-  if (isShiftDown.value && linePoint.x && linePoint.y) {
-    const position = getPosition(downPoint, linePoint, { x, y })
-    ctx.value.moveTo(lastX.value, lastY.value)
-    ctx.value.lineTo(position.x, position.y)
-    ctx.value.stroke()
-    ;[lastX.value, lastY.value] = [position.x, position.y]
+  if (isShiftDown.value) {
+    if (linePoint.x && linePoint.y) {
+      const position = getPosition(downPoint, linePoint, { x, y })
+      ctx.value.lineTo(position.x, position.y)
+      ctx.value.clearRect(0, 0, myCanvas.value.width, myCanvas.value.height)
+      ctx.value.stroke()
+    }
   } else {
-    ctx.value.moveTo(lastX.value, lastY.value)
     ctx.value.lineTo(x, y)
+    ctx.value.clearRect(0, 0, myCanvas.value.width, myCanvas.value.height)
     ctx.value.stroke()
-    ;[lastX.value, lastY.value] = [x, y]
   }
 }
 
-// 在mousemove事件内部添加保存历史记录的逻辑，需要保存的数量比最大值多一个，因为要还原最后一个
 const onMouseup = (event: any) => {
   if (isDrawing.value) {
+    // showCtx.value.globalCompositeOperation = 'destination-over'
+    showCtx.value.drawImage(myCanvas.value, 0, 0, showCanvas.value.width, showCanvas.value.height)
+    ctx.value.clearRect(0, 0, myCanvas.value.width, myCanvas.value.height)
     saveCurrent()
     downPoint.x = 0
     downPoint.y = 0
@@ -149,10 +148,16 @@ const saveCurrent = () => {
   if (currentIndex.value !== history.value.length - 1) {
     history.value.splice(currentIndex.value + 1)
   }
+  // 保存的数量比最大值多一个，因为要还原最后一个
   if (history.value.length === maxHistorySteps + 1) {
     history.value.shift()
   }
-  const imageData = ctx.value.getImageData(0, 0, myCanvas.value.width, myCanvas.value.height)
+  const imageData = showCtx.value.getImageData(
+    0,
+    0,
+    showCanvas.value.width,
+    showCanvas.value.height
+  )
   history.value.push(imageData)
   currentIndex.value = history.value.length - 1
   canRedo.value = false
@@ -160,7 +165,7 @@ const saveCurrent = () => {
 
 const undo = () => {
   if (currentIndex.value > 0) {
-    ctx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
+    showCtx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
     currentIndex.value--
     canRedo.value = true
   } else {
@@ -170,7 +175,7 @@ const undo = () => {
 
 const redo = () => {
   if (canRedo.value) {
-    ctx.value.putImageData(history.value[currentIndex.value + 1], 0, 0)
+    showCtx.value.putImageData(history.value[currentIndex.value + 1], 0, 0)
     currentIndex.value++
     canRedo.value = false
   } else {
@@ -208,6 +213,9 @@ onMounted(() => {
   // 初始化时获取绘图上下文
   if (myCanvas.value) {
     ctx.value = myCanvas.value.getContext('2d')
+  }
+  if (showCanvas.value) {
+    showCtx.value = showCanvas.value.getContext('2d')
     saveCurrent()
   }
   if (imgCanvas.value) {
@@ -225,6 +233,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <p>画笔工具</p>
   <canvas
     id="myCanvas"
     ref="myCanvas"
@@ -234,6 +243,7 @@ onUnmounted(() => {
     @mousemove="onMousemove"
     @mouseup="onMouseup"
   ></canvas>
+  <canvas id="showCanvas" ref="showCanvas" width="800" height="600"></canvas>
   <canvas id="imgCanvas" ref="imgCanvas" width="800" height="600"></canvas>
   <button @click="undo">撤销</button>
   <button @click="redo">重做</button>
@@ -248,6 +258,9 @@ canvas {
   left: 100px;
 }
 #myCanvas {
+  z-index: 3;
+}
+#showCanvas {
   z-index: 2;
 }
 #imgCanvas {

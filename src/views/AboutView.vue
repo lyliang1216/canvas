@@ -47,7 +47,7 @@ const toDrawLine = (ctx: any, x: any, y: any, toX: any, toY: any) => {
   ctx.beginPath()
   ctx.moveTo(x, y)
   ctx.lineTo(toX, toY)
-  ctx.strokeStyle = '#000'
+  ctx.strokeStyle = 'rgba(255,255,255,1)'
   ctx.lineWidth = 2
   ctx.stroke()
 }
@@ -102,16 +102,18 @@ const onClick = (event: any) => {
       }
 
       // 绘制一个蓝色的点
-      previewCtx.value.fillStyle = 'blue'
+      previewCtx.value.fillStyle = '#fff'
+      previewCtx.value.strokeStyle = '#4FAFFC'
       previewCtx.value.beginPath()
       previewCtx.value.arc(
         getLastXY(pointArr.value).x,
         getLastXY(pointArr.value).y,
-        5,
+        2,
         0,
         Math.PI * 2
-      ) // 绘制一个半径为5的圆形点
+      )
       previewCtx.value.fill()
+      previewCtx.value.stroke()
       saveCurrent()
     }
   }
@@ -128,7 +130,7 @@ const fillArea = (points: any) => {
       previewCtx.value.lineTo(points[i].x, points[i].y)
     }
     previewCtx.value.closePath()
-    previewCtx.value.fillStyle = '#FF0000' // 颜色自定义
+    previewCtx.value.fillStyle = 'rgba(79, 175, 252, 0.33)' // 颜色自定义
     previewCtx.value.fill()
   }
 }
@@ -220,18 +222,29 @@ const redo = () => {
   }
 }
 
+const setImg = () => {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'
+  img.onload = () => {
+    previewCtx.value.drawImage(img, 0, 0, previewCanvas.value.width, previewCanvas.value.height)
+  }
+}
+
 onMounted(() => {
   if (clickCanvas.value) {
     clickCtx.value = clickCanvas.value.getContext('2d')
   }
   if (previewCanvas.value) {
     previewCtx.value = previewCanvas.value.getContext('2d')
+    setImg()
     saveCurrent()
   }
 })
 </script>
 
 <template>
+  <p>选区工具</p>
   <canvas
     id="clickCanvas"
     ref="clickCanvas"
