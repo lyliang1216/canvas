@@ -229,6 +229,7 @@ const onMousemove = (event: any) => {
     areaRef.value.style.left = originPosition.x + distanceX + 'px'
     areaRef.value.style.top = originPosition.y + distanceY + 'px'
   }
+  onResize()
 }
 const onMouseup = () => {
   positionType.value = ''
@@ -244,6 +245,23 @@ const onAreaMousedown = (event: any) => {
   isMove.value = true
 }
 
+const rectSizePosition = reactive({
+  x: 50,
+  y: 50,
+  width: 300,
+  height: 300
+})
+
+const onResize = () => {
+  const rect = areaRef.value.getBoundingClientRect()
+  const boxRect = boxRef.value.getBoundingClientRect()
+  rectSizePosition.width = rect.width
+  rectSizePosition.height = rect.height
+  rectSizePosition.x = rect.left - boxRect.left
+  rectSizePosition.y = rect.top - boxRect.top
+  console.log(rectSizePosition)
+}
+
 const onAreaMouseup = () => {
   isMove.value = false
 }
@@ -253,32 +271,60 @@ onMounted(() => {})
 
 <template>
   <span>-----裁剪工具</span>
-  <div ref="boxRef" class="box" @mousemove="onMousemove" @mouseup="onMouseup">
+  <div class="wrapper">
     <img
       class="img"
       src="https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg"
       alt=""
     />
-    <div
-      class="area"
-      :style="{ cursor: isMove ? 'move' : 'auto' }"
-      ref="areaRef"
-      @mousedown="onAreaMousedown"
-      @mouseup="onAreaMouseup"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" ref="svgRef" viewBox="0 0 800 600">
+      <!-- 定义一个mask -->
+      <defs>
+        <mask id="cutoutMask">
+          <rect x="0" y="0" width="800" height="600" fill="#fff" />
+          <rect
+            :x="rectSizePosition.x"
+            :y="rectSizePosition.y"
+            :width="rectSizePosition.width"
+            :height="rectSizePosition.height"
+            fill="#000"
+          />
+        </mask>
+      </defs>
+
+      <!-- 半透明背景 -->
+      <rect
+        x="0"
+        y="0"
+        width="800"
+        height="600"
+        fill="#000000"
+        opacity="0.38"
+        mask="url(#cutoutMask)"
+      />
+    </svg>
+    <div ref="boxRef" class="box" @mousemove="onMousemove" @mouseup="onMouseup">
       <div
-        class="resize"
-        @mousedown="(e) => onMousedown(e, item)"
-        :class="item"
-        v-for="item in resizePosition"
-        :key="item"
-      ></div>
+        class="area"
+        :style="{ cursor: isMove ? 'move' : 'auto' }"
+        ref="areaRef"
+        @mousedown="onAreaMousedown"
+        @mouseup="onAreaMouseup"
+      >
+        <div
+          class="resize"
+          @mousedown="(e) => onMousedown(e, item)"
+          :class="item"
+          v-for="item in resizePosition"
+          :key="item"
+        ></div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.box {
+.wrapper {
   width: 800px;
   height: 600px;
   position: fixed;
@@ -286,9 +332,27 @@ onMounted(() => {})
   left: 100px;
   user-select: none;
   .img {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
+    z-index: 1;
   }
+}
+svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  width: 800px;
+  height: 600px;
+}
+.box {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
   .area {
     width: 300px;
     height: 300px;
