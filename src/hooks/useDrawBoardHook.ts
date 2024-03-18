@@ -1,22 +1,8 @@
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, type Ref } from 'vue'
 
 export interface Point {
   x: number
   y: number
-}
-
-export function usehook1() {
-  const a = ref(1)
-  return { a }
-}
-export function usehook2() {
-  const { a } = usehook1()
-  const showA = () => {
-    console.log(a.value, '打印')
-  }
-  return {
-    showA
-  }
 }
 
 export function useCanvasRefs() {
@@ -51,9 +37,26 @@ export function useCommonState() {
   }
 }
 
-export function useCommonTool() {
-  const { previewCanvasRef, previewCtx, imgCanvasRef, imgCtx } = useCanvasRefs()
-  const { history, currentIndex, canRedo, maxHistorySteps } = useStepsState()
+export function useCommonTool(props: {
+  previewCanvasRef: Ref<HTMLCanvasElement | null>
+  previewCtx: Ref<CanvasRenderingContext2D | null>
+  imgCanvasRef: Ref<HTMLCanvasElement | null>
+  imgCtx: Ref<CanvasRenderingContext2D | null>
+  history: ImageData[]
+  currentIndex: Ref<number>
+  canRedo: Ref<boolean>
+  maxHistorySteps: number
+}) {
+  const {
+    previewCanvasRef,
+    previewCtx,
+    imgCanvasRef,
+    imgCtx,
+    history,
+    currentIndex,
+    canRedo,
+    maxHistorySteps
+  } = props
 
   const filterAllColor = (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     const imageData = content.getImageData(0, 0, canvas.width, canvas.height)
@@ -119,8 +122,6 @@ export function useCommonTool() {
   }
 
   const setImg = () => {
-    console.log(imgCtx.value, imgCanvasRef.value)
-
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'
@@ -158,11 +159,34 @@ export function useBrushState() {
   }
 }
 
-export function useBrushTool() {
-  const { previewCanvasRef, previewCtx } = useCanvasRefs()
-  const { maskColor, lineWidth } = useCommonState()
-  const { filterAllColor, saveCurrent } = useCommonTool()
-  const { isDrawing, isShiftDown, downPoint, lastX, lastY, linePoint } = useBrushState()
+export function useBrushTool(props: {
+  previewCanvasRef: Ref<HTMLCanvasElement | null>
+  previewCtx: Ref<CanvasRenderingContext2D | null>
+  maskColor: string
+  lineWidth: number
+  filterAllColor: (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void
+  saveCurrent: () => void
+  isDrawing: Ref<boolean>
+  isShiftDown: Ref<boolean>
+  downPoint: Point
+  lastX: Ref<number | null>
+  lastY: Ref<number | null>
+  linePoint: Point
+}) {
+  const {
+    previewCanvasRef,
+    previewCtx,
+    maskColor,
+    lineWidth,
+    filterAllColor,
+    saveCurrent,
+    isDrawing,
+    isShiftDown,
+    downPoint,
+    lastX,
+    lastY,
+    linePoint
+  } = props
   // Shift键被按下
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Shift') {
@@ -302,7 +326,6 @@ export function useBrushTool() {
     handleKeyDown,
     handleKeyUp,
     onPreviewMousedown,
-    getPosition,
     onPreviewMousemove,
     onPreviewMouseup
   }
@@ -327,10 +350,34 @@ export function useSelectionState() {
   }
 }
 
-export function useSelectionTool() {
-  const { clickCanvasRef, previewCtx, clickCtx, previewCanvasRef } = useCanvasRefs()
-  const { saveCurrent, filterAllColor } = useCommonTool()
-  const { pointArr, pointGroup, pointAll, originX, originY, pointIndex } = useSelectionState()
+export function useSelectionTool(props: {
+  clickCanvasRef: Ref<HTMLCanvasElement | null>
+  previewCtx: Ref<CanvasRenderingContext2D | null>
+  clickCtx: Ref<CanvasRenderingContext2D | null>
+  previewCanvasRef: Ref<HTMLCanvasElement | null>
+  saveCurrent: () => void
+  filterAllColor: (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void
+  pointArr: Point[]
+  pointGroup: Point[][]
+  pointAll: Ref<Point[]>
+  originX: Ref<number | null>
+  originY: Ref<number | null>
+  pointIndex: Ref<number>
+}) {
+  const {
+    clickCanvasRef,
+    previewCtx,
+    clickCtx,
+    previewCanvasRef,
+    saveCurrent,
+    filterAllColor,
+    pointArr,
+    pointGroup,
+    pointAll,
+    originX,
+    originY,
+    pointIndex
+  } = props
 
   // 获取数组指定位置元素
   const getPointArrElement = (position: 'first' | 'last' | 'beforeLast') => {
@@ -533,11 +580,36 @@ export function useStepsState() {
   }
 }
 
-export function useStepsTool() {
-  const { previewCtx, clickCtx, clickCanvasRef } = useCanvasRefs()
-  const { isArea } = useCommonState()
-  const { pointGroup, originX, originY, pointAll, pointIndex, pointArr } = useSelectionState()
-  const { history, currentIndex, canRedo } = useStepsState()
+export function useStepsTool(props: {
+  previewCtx: Ref<CanvasRenderingContext2D | null>
+  clickCtx: Ref<CanvasRenderingContext2D | null>
+  clickCanvasRef: Ref<HTMLCanvasElement | null>
+  isArea: Ref<boolean>
+  pointGroup: Point[][]
+  originX: Ref<number | null>
+  originY: Ref<number | null>
+  pointAll: Ref<Point[]>
+  pointIndex: Ref<number>
+  pointArr: Point[]
+  history: ImageData[]
+  currentIndex: Ref<number>
+  canRedo: Ref<boolean>
+}) {
+  const {
+    previewCtx,
+    clickCtx,
+    clickCanvasRef,
+    isArea,
+    pointGroup,
+    originX,
+    originY,
+    pointAll,
+    pointIndex,
+    pointArr,
+    history,
+    currentIndex,
+    canRedo
+  } = props
 
   const findOriginArr = (index: number) => {
     let i = 0

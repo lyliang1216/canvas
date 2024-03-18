@@ -6,25 +6,74 @@ import {
   useBrushTool,
   useSelectionTool,
   useStepsTool,
-  usehook1,
-  usehook2
+  useBrushState,
+  useSelectionState,
+  useStepsState
 } from '@/hooks/useDrawBoardHook'
 import { onMounted, onUnmounted } from 'vue'
 
 const { clickCanvasRef, previewCanvasRef, imgCanvasRef, clickCtx, previewCtx, imgCtx } =
   useCanvasRefs()
-const { a } = usehook1()
-const { showA } = usehook2()
-const { nowSelect, isArea } = useCommonState()
-const { setImg, saveCurrent, getMaskAndOriginImg } = useCommonTool()
+const { nowSelect, isArea, lineWidth, maskColor } = useCommonState()
+const { isDrawing, lastX, lastY, downPoint, linePoint, isShiftDown } = useBrushState()
+const { pointArr, originX, originY, pointGroup, pointAll, pointIndex } = useSelectionState()
+const { history, currentIndex, canRedo, maxHistorySteps } = useStepsState()
+const { filterAllColor, saveCurrent, getMaskAndOriginImg, setImg } = useCommonTool({
+  previewCanvasRef,
+  previewCtx,
+  imgCanvasRef,
+  imgCtx,
+  history,
+  currentIndex,
+  canRedo,
+  maxHistorySteps
+})
 const { handleKeyDown, handleKeyUp, onPreviewMousedown, onPreviewMousemove, onPreviewMouseup } =
-  useBrushTool()
-const { onClick, onDblclick, drawLine } = useSelectionTool()
-const { redo, undo } = useStepsTool()
+  useBrushTool({
+    previewCanvasRef,
+    previewCtx,
+    maskColor,
+    lineWidth,
+    filterAllColor,
+    saveCurrent,
+    isDrawing,
+    isShiftDown,
+    downPoint,
+    lastX,
+    lastY,
+    linePoint
+  })
+const { onClick, onDblclick, drawLine } = useSelectionTool({
+  clickCanvasRef,
+  previewCtx,
+  clickCtx,
+  previewCanvasRef,
+  saveCurrent,
+  filterAllColor,
+  pointArr,
+  pointGroup,
+  pointAll,
+  originX,
+  originY,
+  pointIndex
+})
+const { redo, undo } = useStepsTool({
+  previewCtx,
+  clickCtx,
+  clickCanvasRef,
+  isArea,
+  pointGroup,
+  originX,
+  originY,
+  pointAll,
+  pointIndex,
+  pointArr,
+  history,
+  currentIndex,
+  canRedo
+})
 
 onMounted(() => {
-  a.value = 99
-  showA()
   // 初始化时获取绘图上下文
   if (clickCanvasRef.value) {
     clickCtx.value = clickCanvasRef.value.getContext('2d')
