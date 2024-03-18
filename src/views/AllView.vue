@@ -2,9 +2,9 @@
 import { onMounted, ref, onUnmounted, reactive, computed } from 'vue'
 
 const nowSelect = ref('brush')
-const previewCanvas = ref()
+const previewCanvasRef = ref()
 const previewCtx = ref()
-const imgCanvas = ref()
+const imgCanvasRef = ref()
 const imgCtx = ref()
 const history = ref<any[]>([])
 const currentIndex = ref(0)
@@ -49,8 +49,8 @@ const onPreviewMousedown = (event: any) => {
   isDrawing.value = true
   if (!isArea.value) {
     ;[lastX.value, lastY.value] = [
-      event.clientX - previewCanvas.value.offsetLeft,
-      event.clientY - previewCanvas.value.offsetTop
+      event.clientX - previewCanvasRef.value.offsetLeft,
+      event.clientY - previewCanvasRef.value.offsetTop
     ]
     if (isShiftDown.value) {
       downPoint.x = lastX.value
@@ -114,8 +114,8 @@ const onPreviewMousemove = (event: any) => {
   previewCtx.value.lineCap = 'round' // 圆角线头
   previewCtx.value.lineJoin = 'round' // 相交连接处圆角
   const [x, y] = [
-    event.clientX - previewCanvas.value.offsetLeft,
-    event.clientY - previewCanvas.value.offsetTop
+    event.clientX - previewCanvasRef.value.offsetLeft,
+    event.clientY - previewCanvasRef.value.offsetTop
   ]
   // 按下shift后移动距离超过10，才会确定准确的方向
   if (isShiftDown.value && (!linePoint.x || !linePoint.y)) {
@@ -140,7 +140,7 @@ const onPreviewMousemove = (event: any) => {
     previewCtx.value.stroke()
     ;[lastX.value, lastY.value] = [x, y]
   }
-  filterAllColor(previewCtx.value, previewCanvas.value)
+  filterAllColor(previewCtx.value, previewCanvasRef.value)
 }
 
 const onPreviewMouseup = (event: any) => {
@@ -166,8 +166,8 @@ const saveCurrent = () => {
   const imageData = previewCtx.value.getImageData(
     0,
     0,
-    previewCanvas.value.width,
-    previewCanvas.value.height
+    previewCanvasRef.value.width,
+    previewCanvasRef.value.height
   )
 
   history.value.push(imageData)
@@ -196,9 +196,15 @@ const brushRedo = () => {
 }
 
 const save = () => {
-  imgCtx.value.drawImage(previewCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
-  downloadImg(previewCanvas.value)
-  downloadImg(imgCanvas.value)
+  imgCtx.value.drawImage(
+    previewCanvasRef.value,
+    0,
+    0,
+    imgCanvasRef.value.width,
+    imgCanvasRef.value.height
+  )
+  downloadImg(previewCanvasRef.value)
+  downloadImg(imgCanvasRef.value)
   setImg()
 }
 
@@ -217,7 +223,7 @@ const setImg = () => {
   img.crossOrigin = 'anonymous'
   img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'
   img.onload = () => {
-    imgCtx.value.drawImage(img, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
+    imgCtx.value.drawImage(img, 0, 0, imgCanvasRef.value.width, imgCanvasRef.value.height)
   }
 }
 
@@ -225,7 +231,7 @@ const setImg = () => {
  * 以下是选区工具内容
  */
 // 点击的画布
-var clickCanvas = ref()
+var clickCanvasRef = ref()
 var clickCtx = ref()
 
 const pointArr = ref<{ x: number; y: number }[]>([])
@@ -270,7 +276,7 @@ const onClick = (event: any) => {
   event.stopPropagation()
   if (!isArea.value) return
   // 获取鼠标点击相对于canvas的位置
-  var rect = clickCanvas.value.getBoundingClientRect()
+  var rect = clickCanvasRef.value.getBoundingClientRect()
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
   // 排除同一位置重复点击
@@ -349,8 +355,8 @@ const fillArea = (points: any) => {
     previewCtx.value.closePath()
     previewCtx.value.fillStyle = 'rgba(240, 68, 68, 0.40)' // 颜色自定义
     previewCtx.value.fill()
-    filterAllColor(previewCtx.value, previewCanvas.value)
-    clickCtx.value.clearRect(0, 0, clickCanvas.value.width, clickCanvas.value.height)
+    filterAllColor(previewCtx.value, previewCanvasRef.value)
+    clickCtx.value.clearRect(0, 0, clickCanvasRef.value.width, clickCanvasRef.value.height)
   }
 }
 
@@ -378,7 +384,7 @@ const onDblclick = (event: any) => {
   event.stopPropagation()
   if (!isArea.value) return
   // 获取鼠标双击相对于canvas的位置
-  var rect = clickCanvas.value.getBoundingClientRect()
+  var rect = clickCanvasRef.value.getBoundingClientRect()
   var x = event.clientX - rect.left
   var y = event.clientY - rect.top
   if (pointArr.value.length > 2) {
@@ -392,15 +398,15 @@ const onDblclick = (event: any) => {
 
 // 清除线条函数（可选，用于在鼠标抬起后清除线条）
 const clearLine = () => {
-  clickCtx.value.clearRect(0, 0, clickCanvas.value.width, clickCanvas.value.height)
+  clickCtx.value.clearRect(0, 0, clickCanvasRef.value.width, clickCanvasRef.value.height)
 }
 
 // 绘制线条函数
 const drawLine = (e: any) => {
   if (!isArea.value) return
   if (!e) e = window.event // 兼容IE
-  var mouseX = e.clientX - clickCanvas.value.offsetLeft
-  var mouseY = e.clientY - clickCanvas.value.offsetTop
+  var mouseX = e.clientX - clickCanvasRef.value.offsetLeft
+  var mouseY = e.clientY - clickCanvasRef.value.offsetTop
 
   // 处理吸附到起点
   const isNearStart = checkRangeWithError(
@@ -438,7 +444,7 @@ const findOriginArr = (index: number) => {
 const areaUndo = () => {
   if (currentIndex.value > 0) {
     previewCtx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
-    clickCtx.value.clearRect(0, 0, clickCanvas.value.width, clickCanvas.value.height)
+    clickCtx.value.clearRect(0, 0, clickCanvasRef.value.width, clickCanvasRef.value.height)
     currentIndex.value--
     canRedo.value = true
     originX.value = pointAll.value[pointIndex.value - 1]?.x
@@ -482,15 +488,15 @@ const redo = () => {
 
 onMounted(() => {
   // 初始化时获取绘图上下文
-  if (clickCanvas.value) {
-    clickCtx.value = clickCanvas.value.getContext('2d')
+  if (clickCanvasRef.value) {
+    clickCtx.value = clickCanvasRef.value.getContext('2d')
   }
-  if (previewCanvas.value) {
-    previewCtx.value = previewCanvas.value.getContext('2d')
+  if (previewCanvasRef.value) {
+    previewCtx.value = previewCanvasRef.value.getContext('2d')
     saveCurrent()
   }
-  if (imgCanvas.value) {
-    imgCtx.value = imgCanvas.value.getContext('2d')
+  if (imgCanvasRef.value) {
+    imgCtx.value = imgCanvasRef.value.getContext('2d')
     setImg()
   }
   window.addEventListener('keydown', handleKeyDown)
@@ -511,8 +517,8 @@ const checkType = (type: string) => {
   <button :class="{ active: nowSelect === 'brush' }" @click="checkType('brush')">画笔</button>
   <button :class="{ active: nowSelect === 'area' }" @click="checkType('area')">选区</button>
   <canvas
-    id="clickCanvas"
-    ref="clickCanvas"
+    id="clickCanvasRef"
+    ref="clickCanvasRef"
     width="800"
     height="600"
     @click="onClick"
@@ -521,8 +527,8 @@ const checkType = (type: string) => {
     :style="{ zIndex: nowSelect === 'area' ? 3 : 2 }"
   ></canvas>
   <canvas
-    id="previewCanvas"
-    ref="previewCanvas"
+    id="previewCanvasRef"
+    ref="previewCanvasRef"
     width="800"
     height="600"
     @mousedown="onPreviewMousedown"
@@ -530,7 +536,7 @@ const checkType = (type: string) => {
     @mouseup="onPreviewMouseup"
     :style="{ zIndex: nowSelect === 'area' ? 2 : 3 }"
   ></canvas>
-  <canvas id="imgCanvas" ref="imgCanvas" width="800" height="600"></canvas>
+  <canvas id="imgCanvasRef" ref="imgCanvasRef" width="800" height="600"></canvas>
   <button @click="undo">撤销</button>
   <button @click="redo">重做</button>
   <button @click="save">保存</button>
@@ -548,13 +554,13 @@ canvas {
   background: #fff;
   border: 1px solid #000;
 }
-#clickCanvas {
+#clickCanvasRef {
   z-index: 3;
 }
-#previewCanvas {
+#previewCanvasRef {
   z-index: 2;
 }
-#imgCanvas {
+#imgCanvasRef {
   z-index: 1;
 }
 </style>
