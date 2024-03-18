@@ -135,7 +135,7 @@ const onMousemove = (event: any) => {
     ctx.value.stroke()
     ;[lastX.value, lastY.value] = [x, y]
   }
-  filterShowCtx(ctx.value, myCanvas.value)
+  filterAllColor(ctx.value, myCanvas.value)
 }
 
 const onMouseup = (event: any) => {
@@ -149,7 +149,7 @@ const onMouseup = (event: any) => {
   isDrawing.value = false
 }
 
-const filterShowCtx = (content: any, canvas: any) => {
+const filterAllColor = (content: any, canvas: any) => {
   var imageData = content.getImageData(0, 0, canvas.width, canvas.height)
   var data = imageData.data
 

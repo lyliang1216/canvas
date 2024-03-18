@@ -132,9 +132,31 @@ const fillArea = (points: any) => {
       previewCtx.value.lineTo(points[i].x, points[i].y)
     }
     previewCtx.value.closePath()
-    previewCtx.value.fillStyle = 'rgba(79, 175, 252, 0.33)' // 颜色自定义
+    previewCtx.value.fillStyle = 'rgba(240, 68, 68, 0.40)' // 颜色自定义
     previewCtx.value.fill()
+    filterAllColor(previewCtx.value, previewCanvas.value)
+    clickCtx.value.clearRect(0, 0, clickCanvas.value.width, clickCanvas.value.height)
   }
+}
+
+const filterAllColor = (content: any, canvas: any) => {
+  var imageData = content.getImageData(0, 0, canvas.width, canvas.height)
+  var data = imageData.data
+
+  // 遍历每个像素
+  for (var i = 0, len = data.length; i < len; i += 4) {
+    // 检查当前像素是否足够不透明（这里假设大于128作为不透明的标准）
+    if (data[i + 3] > 128) {
+      // 更改像素颜色为rgba(240, 68, 68, 0.40)
+      data[i] = 240 // R分量
+      data[i + 1] = 68 // G分量
+      data[i + 2] = 68 // B分量
+      data[i + 3] = 102 // A分量，0.4 * 255
+    }
+  }
+
+  // 将修改后的图像数据放回canvas
+  content.putImageData(imageData, 0, 0)
 }
 
 const saveCurrent = () => {
