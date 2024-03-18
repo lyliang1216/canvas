@@ -1,8 +1,22 @@
-import { computed, reactive, ref, type Ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
 export interface Point {
   x: number
   y: number
+}
+
+export function usehook1() {
+  const a = ref(1)
+  return { a }
+}
+export function usehook2() {
+  const { a } = usehook1()
+  const showA = () => {
+    console.log(a.value, '打印')
+  }
+  return {
+    showA
+  }
 }
 
 export function useCanvasRefs() {
@@ -105,6 +119,8 @@ export function useCommonTool() {
   }
 
   const setImg = () => {
+    console.log(imgCtx.value, imgCanvasRef.value)
+
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'

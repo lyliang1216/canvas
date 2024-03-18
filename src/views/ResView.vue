@@ -5,12 +5,16 @@ import {
   useCommonTool,
   useBrushTool,
   useSelectionTool,
-  useStepsTool
+  useStepsTool,
+  usehook1,
+  usehook2
 } from '@/hooks/useDrawBoardHook'
 import { onMounted, onUnmounted } from 'vue'
 
 const { clickCanvasRef, previewCanvasRef, imgCanvasRef, clickCtx, previewCtx, imgCtx } =
   useCanvasRefs()
+const { a } = usehook1()
+const { showA } = usehook2()
 const { nowSelect, isArea } = useCommonState()
 const { setImg, saveCurrent, getMaskAndOriginImg } = useCommonTool()
 const { handleKeyDown, handleKeyUp, onPreviewMousedown, onPreviewMousemove, onPreviewMouseup } =
@@ -19,6 +23,8 @@ const { onClick, onDblclick, drawLine } = useSelectionTool()
 const { redo, undo } = useStepsTool()
 
 onMounted(() => {
+  a.value = 99
+  showA()
   // 初始化时获取绘图上下文
   if (clickCanvasRef.value) {
     clickCtx.value = clickCanvasRef.value.getContext('2d')
