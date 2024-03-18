@@ -13,7 +13,7 @@ const isDrawing = ref(false)
 const maxHistorySteps = 3
 const canRedo = ref(false)
 const width = ref(25)
-const color = ref('rgba(255,255,255,0.8)')
+const color = ref('rgba(240, 68, 68, 0.40)')
 // 点击位置
 const downPoint = reactive<{ x: number; y: number }>({ x: 0, y: 0 })
 // 移动方向位置确定
@@ -135,6 +135,7 @@ const onMouseup = (event: any) => {
   if (isDrawing.value) {
     // showCtx.value.globalCompositeOperation = 'destination-over'
     showCtx.value.drawImage(myCanvas.value, 0, 0, showCanvas.value.width, showCanvas.value.height)
+    filterShowCtx(showCtx.value, showCanvas.value)
     ctx.value.clearRect(0, 0, myCanvas.value.width, myCanvas.value.height)
     saveCurrent()
     downPoint.x = 0
@@ -143,6 +144,26 @@ const onMouseup = (event: any) => {
     linePoint.y = 0
   }
   isDrawing.value = false
+}
+
+const filterShowCtx = (content: any, canvas: any) => {
+  var imageData = content.getImageData(0, 0, canvas.width, canvas.height)
+  var data = imageData.data
+
+  // 遍历每个像素
+  for (var i = 0, len = data.length; i < len; i += 4) {
+    // 检查当前像素是否足够不透明（这里假设大于128作为不透明的标准）
+    if (data[i + 3] > 128) {
+      // 更改像素颜色为rgba(240, 68, 68, 0.40)
+      data[i] = 240 // R分量
+      data[i + 1] = 68 // G分量
+      data[i + 2] = 68 // B分量
+      data[i + 3] = 102 // A分量，0.4 * 255
+    }
+  }
+
+  // 将修改后的图像数据放回canvas
+  content.putImageData(imageData, 0, 0)
 }
 
 const saveCurrent = () => {
@@ -159,6 +180,8 @@ const saveCurrent = () => {
     showCanvas.value.width,
     showCanvas.value.height
   )
+  console.log(imageData)
+
   history.value.push(imageData)
   currentIndex.value = history.value.length - 1
   canRedo.value = false
