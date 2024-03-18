@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, onUnmounted, reactive } from 'vue'
 
-const brushCanvas = ref()
-const brushCtx = ref()
+const previewCanvas = ref()
+const previewCtx = ref()
 const imgCanvas = ref()
 const imgCtx = ref()
 const history = ref<any[]>([])
@@ -42,11 +42,11 @@ const handleKeyUp = (e: any) => {
   }
 }
 
-const onMousedown = (event: any) => {
+const onPreviewMousedown = (event: any) => {
   isDrawing.value = true
   ;[lastX.value, lastY.value] = [
-    event.clientX - brushCanvas.value.offsetLeft,
-    event.clientY - brushCanvas.value.offsetTop
+    event.clientX - previewCanvas.value.offsetLeft,
+    event.clientY - previewCanvas.value.offsetTop
   ]
   if (isShiftDown.value) {
     downPoint.x = lastX.value
@@ -100,17 +100,17 @@ const getPosition = (
   }
 }
 
-const onMousemove = (event: any) => {
+const onPreviewMousemove = (event: any) => {
   if (!isDrawing.value) return
-  brushCtx.value.beginPath()
+  previewCtx.value.beginPath()
 
-  brushCtx.value.lineWidth = width.value // 设置线条宽度
-  brushCtx.value.strokeStyle = color.value // 设置线条宽度
-  brushCtx.value.lineCap = 'round' // 圆角线头
-  brushCtx.value.lineJoin = 'round' // 相交连接处圆角
+  previewCtx.value.lineWidth = width.value // 设置线条宽度
+  previewCtx.value.strokeStyle = color.value // 设置线条宽度
+  previewCtx.value.lineCap = 'round' // 圆角线头
+  previewCtx.value.lineJoin = 'round' // 相交连接处圆角
   const [x, y] = [
-    event.clientX - brushCanvas.value.offsetLeft,
-    event.clientY - brushCanvas.value.offsetTop
+    event.clientX - previewCanvas.value.offsetLeft,
+    event.clientY - previewCanvas.value.offsetTop
   ]
   // 按下shift后移动距离超过10，才会确定准确的方向
   if (isShiftDown.value && (!linePoint.x || !linePoint.y)) {
@@ -124,21 +124,21 @@ const onMousemove = (event: any) => {
   if (isShiftDown.value) {
     if (linePoint.x && linePoint.y) {
       const position = getPosition(downPoint, linePoint, { x, y })
-      brushCtx.value.moveTo(lastX.value, lastY.value)
-      brushCtx.value.lineTo(position.x, position.y)
-      brushCtx.value.stroke()
+      previewCtx.value.moveTo(lastX.value, lastY.value)
+      previewCtx.value.lineTo(position.x, position.y)
+      previewCtx.value.stroke()
       ;[lastX.value, lastY.value] = [position.x, position.y]
     }
   } else {
-    brushCtx.value.moveTo(lastX.value, lastY.value)
-    brushCtx.value.lineTo(x, y)
-    brushCtx.value.stroke()
+    previewCtx.value.moveTo(lastX.value, lastY.value)
+    previewCtx.value.lineTo(x, y)
+    previewCtx.value.stroke()
     ;[lastX.value, lastY.value] = [x, y]
   }
-  filterAllColor(brushCtx.value, brushCanvas.value)
+  filterAllColor(previewCtx.value, previewCanvas.value)
 }
 
-const onMouseup = (event: any) => {
+const onPreviewMouseup = (event: any) => {
   if (isDrawing.value) {
     saveCurrent()
     downPoint.x = 0
@@ -177,11 +177,11 @@ const saveCurrent = () => {
   if (history.value.length === maxHistorySteps + 1) {
     history.value.shift()
   }
-  const imageData = brushCtx.value.getImageData(
+  const imageData = previewCtx.value.getImageData(
     0,
     0,
-    brushCanvas.value.width,
-    brushCanvas.value.height
+    previewCanvas.value.width,
+    previewCanvas.value.height
   )
 
   history.value.push(imageData)
@@ -191,7 +191,7 @@ const saveCurrent = () => {
 
 const undo = () => {
   if (currentIndex.value > 0) {
-    brushCtx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
+    previewCtx.value.putImageData(history.value[currentIndex.value - 1], 0, 0)
     currentIndex.value--
     canRedo.value = true
   } else {
@@ -201,7 +201,7 @@ const undo = () => {
 
 const redo = () => {
   if (canRedo.value) {
-    brushCtx.value.putImageData(history.value[currentIndex.value + 1], 0, 0)
+    previewCtx.value.putImageData(history.value[currentIndex.value + 1], 0, 0)
     currentIndex.value++
     canRedo.value = false
   } else {
@@ -210,8 +210,8 @@ const redo = () => {
 }
 
 const save = () => {
-  imgCtx.value.drawImage(brushCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
-  downloadImg(brushCanvas.value)
+  imgCtx.value.drawImage(previewCanvas.value, 0, 0, imgCanvas.value.width, imgCanvas.value.height)
+  downloadImg(previewCanvas.value)
   downloadImg(imgCanvas.value)
   setImg()
 }
@@ -237,8 +237,8 @@ const setImg = () => {
 
 onMounted(() => {
   // 初始化时获取绘图上下文
-  if (brushCanvas.value) {
-    brushCtx.value = brushCanvas.value.getContext('2d')
+  if (previewCanvas.value) {
+    previewCtx.value = previewCanvas.value.getContext('2d')
     saveCurrent()
   }
   if (imgCanvas.value) {
@@ -258,13 +258,13 @@ onUnmounted(() => {
 <template>
   <span>-----画笔工具</span>
   <canvas
-    id="brushCanvas"
-    ref="brushCanvas"
+    id="previewCanvas"
+    ref="previewCanvas"
     width="800"
     height="600"
-    @mousedown="onMousedown"
-    @mousemove="onMousemove"
-    @mouseup="onMouseup"
+    @mousedown="onPreviewMousedown"
+    @mousemove="onPreviewMousemove"
+    @mouseup="onPreviewMouseup"
   ></canvas>
   <canvas id="imgCanvas" ref="imgCanvas" width="800" height="600"></canvas>
   <button @click="undo">撤销</button>
@@ -279,7 +279,7 @@ canvas {
   top: 100px;
   left: 100px;
 }
-#brushCanvas {
+#previewCanvas {
   z-index: 3;
 }
 #showCanvas {
