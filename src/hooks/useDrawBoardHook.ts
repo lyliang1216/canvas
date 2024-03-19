@@ -37,27 +37,7 @@ export function useCommonState() {
   }
 }
 
-export function useCommonTool(props: {
-  previewCanvasRef: Ref<HTMLCanvasElement | null>
-  previewCtx: Ref<CanvasRenderingContext2D | null>
-  imgCanvasRef: Ref<HTMLCanvasElement | null>
-  imgCtx: Ref<CanvasRenderingContext2D | null>
-  history: ImageData[]
-  currentIndex: Ref<number>
-  canRedo: Ref<boolean>
-  maxHistorySteps: number
-}) {
-  const {
-    previewCanvasRef,
-    previewCtx,
-    imgCanvasRef,
-    imgCtx,
-    history,
-    currentIndex,
-    canRedo,
-    maxHistorySteps
-  } = props
-
+export function useCommonMethods() {
   const filterAllColor = (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     const imageData = content.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
@@ -76,39 +56,21 @@ export function useCommonTool(props: {
     content.putImageData(imageData, 0, 0)
   }
 
-  const saveCurrent = () => {
-    if (!previewCtx.value || !previewCanvasRef.value) return
-    if (currentIndex.value !== history.length - 1) {
-      history.splice(currentIndex.value + 1)
-    }
-    // 保存的数量比最大值多一个，因为要还原最后一个
-    if (history.length === maxHistorySteps + 1) {
-      history.shift()
-    }
-    const imageData = previewCtx.value.getImageData(
+  const getMaskAndOriginImg = (
+    maskCanvasRef: Ref<HTMLCanvasElement | null>,
+    originCanvasRef: Ref<HTMLCanvasElement | null>,
+    originCtx: Ref<CanvasRenderingContext2D | null>
+  ) => {
+    if (!maskCanvasRef.value || !originCanvasRef.value || !originCtx.value) return
+    originCtx.value.drawImage(
+      maskCanvasRef.value,
       0,
       0,
-      previewCanvasRef.value.width,
-      previewCanvasRef.value.height
+      originCanvasRef.value.width,
+      originCanvasRef.value.height
     )
-
-    history.push(imageData)
-    currentIndex.value = history.length - 1
-    canRedo.value = false
-  }
-
-  const getMaskAndOriginImg = () => {
-    if (!previewCanvasRef.value || !imgCanvasRef.value || !imgCtx.value) return
-    imgCtx.value.drawImage(
-      previewCanvasRef.value,
-      0,
-      0,
-      imgCanvasRef.value.width,
-      imgCanvasRef.value.height
-    )
-    downloadImg(previewCanvasRef.value)
-    downloadImg(imgCanvasRef.value)
-    setImg()
+    downloadImg(maskCanvasRef.value)
+    downloadImg(originCanvasRef.value)
   }
 
   const downloadImg = (canvas: HTMLCanvasElement) => {
@@ -121,19 +83,21 @@ export function useCommonTool(props: {
     document.body.removeChild(link)
   }
 
-  const setImg = () => {
+  const setImg = (
+    content: Ref<CanvasRenderingContext2D | null>,
+    canvas: Ref<HTMLCanvasElement | null>
+  ) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.src = 'https://file.ccmapp.cn/group1/M00/16/64/rApntl7CSdeAbpYqABArOjGaasg001.jpg'
     img.onload = () => {
-      if (!imgCanvasRef.value || !imgCtx.value) return
-      imgCtx.value.drawImage(img, 0, 0, imgCanvasRef.value.width, imgCanvasRef.value.height)
+      if (!canvas.value || !content.value) return
+      content.value.drawImage(img, 0, 0, canvas.value.width, canvas.value.height)
     }
   }
 
   return {
     filterAllColor,
-    saveCurrent,
     getMaskAndOriginImg,
     setImg
   }
@@ -159,12 +123,11 @@ export function useBrushState() {
   }
 }
 
-export function useBrushTool(props: {
+export function useBrushMethods(props: {
   previewCanvasRef: Ref<HTMLCanvasElement | null>
   previewCtx: Ref<CanvasRenderingContext2D | null>
   maskColor: string
   lineWidth: number
-  filterAllColor: (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void
   saveCurrent: () => void
   isDrawing: Ref<boolean>
   isShiftDown: Ref<boolean>
@@ -178,7 +141,6 @@ export function useBrushTool(props: {
     previewCtx,
     maskColor,
     lineWidth,
-    filterAllColor,
     saveCurrent,
     isDrawing,
     isShiftDown,
@@ -187,6 +149,8 @@ export function useBrushTool(props: {
     lastY,
     linePoint
   } = props
+  const { filterAllColor } = useCommonMethods()
+
   // Shift键被按下
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Shift') {
@@ -350,13 +314,12 @@ export function useSelectionState() {
   }
 }
 
-export function useSelectionTool(props: {
+export function useSelectionMethods(props: {
   clickCanvasRef: Ref<HTMLCanvasElement | null>
   previewCtx: Ref<CanvasRenderingContext2D | null>
   clickCtx: Ref<CanvasRenderingContext2D | null>
   previewCanvasRef: Ref<HTMLCanvasElement | null>
   saveCurrent: () => void
-  filterAllColor: (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void
   pointArr: Point[]
   pointGroup: Point[][]
   pointAll: Ref<Point[]>
@@ -370,7 +333,6 @@ export function useSelectionTool(props: {
     clickCtx,
     previewCanvasRef,
     saveCurrent,
-    filterAllColor,
     pointArr,
     pointGroup,
     pointAll,
@@ -378,6 +340,7 @@ export function useSelectionTool(props: {
     originY,
     pointIndex
   } = props
+  const { filterAllColor } = useCommonMethods()
 
   // 获取数组指定位置元素
   const getPointArrElement = (position: 'first' | 'last' | 'beforeLast') => {
@@ -580,7 +543,8 @@ export function useStepsState() {
   }
 }
 
-export function useStepsTool(props: {
+export function useStepsMethods(props: {
+  previewCanvasRef: Ref<HTMLCanvasElement | null>
   previewCtx: Ref<CanvasRenderingContext2D | null>
   clickCtx: Ref<CanvasRenderingContext2D | null>
   clickCanvasRef: Ref<HTMLCanvasElement | null>
@@ -594,8 +558,10 @@ export function useStepsTool(props: {
   history: ImageData[]
   currentIndex: Ref<number>
   canRedo: Ref<boolean>
+  maxHistorySteps: number
 }) {
   const {
+    previewCanvasRef,
     previewCtx,
     clickCtx,
     clickCanvasRef,
@@ -608,8 +574,30 @@ export function useStepsTool(props: {
     pointArr,
     history,
     currentIndex,
-    canRedo
+    canRedo,
+    maxHistorySteps
   } = props
+
+  const saveCurrent = () => {
+    if (!previewCtx.value || !previewCanvasRef.value) return
+    if (currentIndex.value !== history.length - 1) {
+      history.splice(currentIndex.value + 1)
+    }
+    // 保存的数量比最大值多一个，因为要还原最后一个
+    if (history.length === maxHistorySteps + 1) {
+      history.shift()
+    }
+    const imageData = previewCtx.value.getImageData(
+      0,
+      0,
+      previewCanvasRef.value.width,
+      previewCanvasRef.value.height
+    )
+
+    history.push(imageData)
+    currentIndex.value = history.length - 1
+    canRedo.value = false
+  }
 
   const findOriginArr = (index: number) => {
     let i = 0
@@ -688,6 +676,7 @@ export function useStepsTool(props: {
 
   return {
     undo,
-    redo
+    redo,
+    saveCurrent
   }
 }

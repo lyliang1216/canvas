@@ -2,10 +2,10 @@
 import {
   useCanvasRefs,
   useCommonState,
-  useCommonTool,
-  useBrushTool,
-  useSelectionTool,
-  useStepsTool,
+  useCommonMethods,
+  useBrushMethods,
+  useSelectionMethods,
+  useStepsMethods,
   useBrushState,
   useSelectionState,
   useStepsState
@@ -18,46 +18,9 @@ const { nowSelect, isArea, lineWidth, maskColor } = useCommonState()
 const { isDrawing, lastX, lastY, downPoint, linePoint, isShiftDown } = useBrushState()
 const { pointArr, originX, originY, pointGroup, pointAll, pointIndex } = useSelectionState()
 const { history, currentIndex, canRedo, maxHistorySteps } = useStepsState()
-const { filterAllColor, saveCurrent, getMaskAndOriginImg, setImg } = useCommonTool({
+const { getMaskAndOriginImg, setImg } = useCommonMethods()
+const { redo, undo, saveCurrent } = useStepsMethods({
   previewCanvasRef,
-  previewCtx,
-  imgCanvasRef,
-  imgCtx,
-  history,
-  currentIndex,
-  canRedo,
-  maxHistorySteps
-})
-const { handleKeyDown, handleKeyUp, onPreviewMousedown, onPreviewMousemove, onPreviewMouseup } =
-  useBrushTool({
-    previewCanvasRef,
-    previewCtx,
-    maskColor,
-    lineWidth,
-    filterAllColor,
-    saveCurrent,
-    isDrawing,
-    isShiftDown,
-    downPoint,
-    lastX,
-    lastY,
-    linePoint
-  })
-const { onClick, onDblclick, drawLine } = useSelectionTool({
-  clickCanvasRef,
-  previewCtx,
-  clickCtx,
-  previewCanvasRef,
-  saveCurrent,
-  filterAllColor,
-  pointArr,
-  pointGroup,
-  pointAll,
-  originX,
-  originY,
-  pointIndex
-})
-const { redo, undo } = useStepsTool({
   previewCtx,
   clickCtx,
   clickCanvasRef,
@@ -70,8 +33,41 @@ const { redo, undo } = useStepsTool({
   pointArr,
   history,
   currentIndex,
-  canRedo
+  canRedo,
+  maxHistorySteps
 })
+const { handleKeyDown, handleKeyUp, onPreviewMousedown, onPreviewMousemove, onPreviewMouseup } =
+  useBrushMethods({
+    previewCanvasRef,
+    previewCtx,
+    maskColor,
+    lineWidth,
+    saveCurrent,
+    isDrawing,
+    isShiftDown,
+    downPoint,
+    lastX,
+    lastY,
+    linePoint
+  })
+const { onClick, onDblclick, drawLine } = useSelectionMethods({
+  clickCanvasRef,
+  previewCtx,
+  clickCtx,
+  previewCanvasRef,
+  saveCurrent,
+  pointArr,
+  pointGroup,
+  pointAll,
+  originX,
+  originY,
+  pointIndex
+})
+
+const save = () => {
+  getMaskAndOriginImg(previewCanvasRef, imgCanvasRef, imgCtx)
+  setImg(imgCtx, imgCanvasRef)
+}
 
 onMounted(() => {
   // 初始化时获取绘图上下文
@@ -84,7 +80,7 @@ onMounted(() => {
   }
   if (imgCanvasRef.value) {
     imgCtx.value = imgCanvasRef.value.getContext('2d')
-    setImg()
+    setImg(imgCtx, imgCanvasRef)
   }
   window.addEventListener('keydown', (e) => !isArea && handleKeyDown(e))
   window.addEventListener('keyup', (e) => !isArea && handleKeyUp(e))
@@ -122,7 +118,7 @@ onUnmounted(() => {
   <canvas id="imgCanvasRef" ref="imgCanvasRef" width="800" height="600"></canvas>
   <button @click="undo">撤销</button>
   <button @click="redo">重做</button>
-  <button @click="getMaskAndOriginImg">保存</button>
+  <button @click="save">保存</button>
 </template>
 
 <style scoped lang="scss">
