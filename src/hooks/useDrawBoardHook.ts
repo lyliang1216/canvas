@@ -1,9 +1,10 @@
 import { computed, reactive, ref, type Ref } from 'vue'
-
 export interface Point {
   x: number
   y: number
 }
+
+type BrushSelectionType = 'brush' | 'selection'
 
 export function useCanvasRefs() {
   const clickCanvasRef = ref<HTMLCanvasElement | null>(null)
@@ -24,8 +25,8 @@ export function useCanvasRefs() {
 }
 
 export function useCommonState() {
-  const nowSelect = ref<'brush' | 'area'>('brush')
-  const isArea = computed(() => nowSelect.value === 'area')
+  const nowSelect = ref<BrushSelectionType>('brush')
+  const isArea = computed(() => nowSelect.value === 'selection')
   const lineWidth = 25
   const maskColor = 'rgba(240, 68, 68, 0.40)'
 
@@ -38,13 +39,18 @@ export function useCommonState() {
 }
 
 export function useCommonMethods() {
-  const filterAllColor = (content: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  const filterAllColor = (
+    content: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    isArea: boolean
+  ) => {
     const imageData = content.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
     // 遍历每个像素
     for (let i = 0, len = data.length; i < len; i += 4) {
       // 检查当前像素是否足够不透明（这里假设大于128作为不透明的标准）
-      if (data[i + 3] > 128) {
+      const itemColor = [data[i], data[i + 1], data[i + 2]]
+      if (data[i + 3] > 128 && (isDifferenceWithinRange(itemColor, [240, 68, 68]) || isArea)) {
         // 更改像素颜色为rgba(240, 68, 68, 0.40)
         data[i] = 240 // R分量
         data[i + 1] = 68 // G分量
@@ -54,6 +60,19 @@ export function useCommonMethods() {
     }
     // 将修改后的图像数据放回canvas
     content.putImageData(imageData, 0, 0)
+  }
+
+  const isDifferenceWithinRange = (arr1: number[], arr2: number[]) => {
+    if (arr1.length !== arr2.length) {
+      return false
+    }
+    for (let i = 0; i < arr1.length; i++) {
+      const diff = Math.abs(arr1[i] - arr2[i])
+      if (diff > 20) {
+        return false
+      }
+    }
+    return true
   }
 
   const getMaskAndOriginImg = (
@@ -105,8 +124,7 @@ export function useCommonMethods() {
 
 export function useBrushState() {
   const isDrawing = ref<boolean>(false)
-  const lastX = ref<number | null>(null)
-  const lastY = ref<number | null>(null)
+  const lastPosition = reactive<Point>({ x: 0, y: 0 })
   // 点击位置
   const downPoint = reactive<Point>({ x: 0, y: 0 })
   // 移动方向位置确定
@@ -115,8 +133,7 @@ export function useBrushState() {
 
   return {
     isDrawing,
-    lastX,
-    lastY,
+    lastPosition,
     downPoint,
     linePoint,
     isShiftDown
@@ -132,9 +149,9 @@ export function useBrushMethods(props: {
   isDrawing: Ref<boolean>
   isShiftDown: Ref<boolean>
   downPoint: Point
-  lastX: Ref<number | null>
-  lastY: Ref<number | null>
+  lastPosition: Point
   linePoint: Point
+  brushSelectionSort: BrushSelectionType[]
 }) {
   const {
     previewCanvasRef,
@@ -145,9 +162,9 @@ export function useBrushMethods(props: {
     isDrawing,
     isShiftDown,
     downPoint,
-    lastX,
-    lastY,
-    linePoint
+    lastPosition,
+    linePoint,
+    brushSelectionSort
   } = props
   const { filterAllColor } = useCommonMethods()
 
@@ -155,8 +172,8 @@ export function useBrushMethods(props: {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Shift') {
       if (isDrawing.value && !isShiftDown.value) {
-        downPoint.x = lastX.value || 0
-        downPoint.y = lastY.value || 0
+        downPoint.x = lastPosition.x
+        downPoint.y = lastPosition.y
       }
       isShiftDown.value = true
     }
@@ -176,13 +193,11 @@ export function useBrushMethods(props: {
   const onPreviewMousedown = (event: MouseEvent) => {
     isDrawing.value = true
     if (!previewCanvasRef.value) return
-    ;[lastX.value, lastY.value] = [
-      event.clientX - previewCanvasRef.value.offsetLeft,
-      event.clientY - previewCanvasRef.value.offsetTop
-    ]
+    lastPosition.x = event.clientX - previewCanvasRef.value.offsetLeft
+    lastPosition.y = event.clientY - previewCanvasRef.value.offsetTop
     if (isShiftDown) {
-      downPoint.x = lastX.value || 0
-      downPoint.y = lastY.value || 0
+      downPoint.x = lastPosition.x
+      downPoint.y = lastPosition.y
     }
   }
 
@@ -191,8 +206,8 @@ export function useBrushMethods(props: {
       !isDrawing.value ||
       !previewCanvasRef.value ||
       !previewCtx.value ||
-      !lastX.value ||
-      !lastY.value
+      !lastPosition.x ||
+      !lastPosition.y
     )
       return
     previewCtx.value.beginPath()
@@ -216,18 +231,18 @@ export function useBrushMethods(props: {
     if (isShiftDown.value) {
       if (linePoint.x && linePoint.y) {
         const position = getPosition(downPoint, linePoint, { x, y })
-        previewCtx.value.moveTo(lastX.value, lastY.value)
+        previewCtx.value.moveTo(lastPosition.x, lastPosition.y)
         previewCtx.value.lineTo(position.x, position.y)
         previewCtx.value.stroke()
-        ;[lastX.value, lastY.value] = [position.x, position.y]
+        ;[lastPosition.x, lastPosition.y] = [position.x, position.y]
       }
     } else {
-      previewCtx.value.moveTo(lastX.value, lastY.value)
+      previewCtx.value.moveTo(lastPosition.x, lastPosition.y)
       previewCtx.value.lineTo(x, y)
       previewCtx.value.stroke()
-      ;[lastX.value, lastY.value] = [x, y]
+      ;[lastPosition.x, lastPosition.y] = [x, y]
     }
-    filterAllColor(previewCtx.value, previewCanvasRef.value)
+    filterAllColor(previewCtx.value, previewCanvasRef.value, false)
   }
 
   const onPreviewMouseup = () => {
@@ -237,6 +252,7 @@ export function useBrushMethods(props: {
       downPoint.y = 0
       linePoint.x = 0
       linePoint.y = 0
+      brushSelectionSort.push('brush')
     }
     isDrawing.value = false
   }
@@ -298,16 +314,14 @@ export function useBrushMethods(props: {
 export function useSelectionState() {
   const pointArr = reactive<Point[]>([])
   // 连线鼠标的点位
-  const originX = ref<number | null>(null)
-  const originY = ref<number | null>(null)
+  const originPosition = reactive<Point>({ x: 0, y: 0 })
   const pointGroup = reactive<Point[][]>([])
   const pointAll = computed<Point[]>(() => pointGroup.flat())
   const pointIndex = ref<number>(0)
 
   return {
     pointArr,
-    originX,
-    originY,
+    originPosition,
     pointGroup,
     pointAll,
     pointIndex
@@ -323,9 +337,9 @@ export function useSelectionMethods(props: {
   pointArr: Point[]
   pointGroup: Point[][]
   pointAll: Ref<Point[]>
-  originX: Ref<number | null>
-  originY: Ref<number | null>
+  originPosition: Point
   pointIndex: Ref<number>
+  brushSelectionSort: BrushSelectionType[]
 }) {
   const {
     clickCanvasRef,
@@ -336,9 +350,9 @@ export function useSelectionMethods(props: {
     pointArr,
     pointGroup,
     pointAll,
-    originX,
-    originY,
-    pointIndex
+    originPosition,
+    pointIndex,
+    brushSelectionSort
   } = props
   const { filterAllColor } = useCommonMethods()
 
@@ -385,13 +399,13 @@ export function useSelectionMethods(props: {
     const y = event.clientY - rect.top
     // 排除同一位置重复点击
     if (x !== getPointArrElement('last').x && y !== getPointArrElement('last').y) {
-      originX.value = x
-      originY.value = y
+      originPosition.x = x
+      originPosition.y = y
       // 最后点击了第一个点，就可以结束了
       if (
         checkRangeWithPostion(
-          originX.value,
-          originY.value,
+          originPosition.x,
+          originPosition.y,
           getPointArrElement('first').x,
           getPointArrElement('first').y,
           10
@@ -406,10 +420,11 @@ export function useSelectionMethods(props: {
         )
         fillArea(pointArr)
         pointArr.length = 0
-        originX.value = null
-        originY.value = null
+        originPosition.x = 0
+        originPosition.x = 0
       } else {
-        pointArr.push({ x: originX.value, y: originY.value })
+        if (pointIndex.value === -1) pointGroup.length = 0
+        pointArr.push(JSON.parse(JSON.stringify(originPosition)))
         if (pointArr.length === 1) {
           pointGroup.push(Array.from(pointArr))
         } else {
@@ -442,6 +457,7 @@ export function useSelectionMethods(props: {
         previewCtx.value.stroke()
         saveCurrent()
       }
+      brushSelectionSort.push('selection')
     }
   }
 
@@ -460,7 +476,7 @@ export function useSelectionMethods(props: {
       previewCtx.value.closePath()
       previewCtx.value.fillStyle = 'rgba(240, 68, 68, 0.40)' // 颜色自定义
       previewCtx.value.fill()
-      filterAllColor(previewCtx.value, previewCanvasRef.value)
+      filterAllColor(previewCtx.value, previewCanvasRef.value, true)
       clickCtx.value.clearRect(0, 0, clickCanvasRef.value.width, clickCanvasRef.value.height)
     }
   }
@@ -482,8 +498,8 @@ export function useSelectionMethods(props: {
       )
       fillArea(pointArr)
       pointArr.length = 0
-      originX.value = null
-      originY.value = null
+      originPosition.x = 0
+      originPosition.y = 0
     }
   }
 
@@ -511,11 +527,11 @@ export function useSelectionMethods(props: {
 
     // 清除上一次的线条
     clearLine()
-    if (pointAll.value.length && originX.value && originY.value) {
+    if (pointAll.value.length && originPosition.x && originPosition.y) {
       toDrawLine(
         clickCtx.value,
-        originX.value,
-        originY.value,
+        originPosition.x,
+        originPosition.y,
         isNearStart ? getPointArrElement('first').x : mouseX,
         isNearStart ? getPointArrElement('first').y : mouseY
       )
@@ -534,12 +550,16 @@ export function useStepsState() {
   const currentIndex = ref<number>(0)
   const canRedo = ref<boolean>(false)
   const maxHistorySteps = 15
+  const brushSelectionSort = reactive<BrushSelectionType[]>([])
+  const undoingAction = ref<BrushSelectionType | ''>('')
 
   return {
     history,
     currentIndex,
     canRedo,
-    maxHistorySteps
+    maxHistorySteps,
+    brushSelectionSort,
+    undoingAction
   }
 }
 
@@ -548,10 +568,8 @@ export function useStepsMethods(props: {
   previewCtx: Ref<CanvasRenderingContext2D | null>
   clickCtx: Ref<CanvasRenderingContext2D | null>
   clickCanvasRef: Ref<HTMLCanvasElement | null>
-  isArea: Ref<boolean>
   pointGroup: Point[][]
-  originX: Ref<number | null>
-  originY: Ref<number | null>
+  originPosition: Point
   pointAll: Ref<Point[]>
   pointIndex: Ref<number>
   pointArr: Point[]
@@ -559,23 +577,25 @@ export function useStepsMethods(props: {
   currentIndex: Ref<number>
   canRedo: Ref<boolean>
   maxHistorySteps: number
+  brushSelectionSort: BrushSelectionType[]
+  undoingAction: Ref<BrushSelectionType | ''>
 }) {
   const {
     previewCanvasRef,
     previewCtx,
     clickCtx,
     clickCanvasRef,
-    isArea,
     pointGroup,
-    originX,
-    originY,
+    originPosition,
     pointAll,
     pointIndex,
     pointArr,
     history,
     currentIndex,
     canRedo,
-    maxHistorySteps
+    maxHistorySteps,
+    brushSelectionSort,
+    undoingAction
   } = props
 
   const saveCurrent = () => {
@@ -593,7 +613,6 @@ export function useStepsMethods(props: {
       previewCanvasRef.value.width,
       previewCanvasRef.value.height
     )
-
     history.push(imageData)
     currentIndex.value = history.length - 1
     canRedo.value = false
@@ -615,17 +634,21 @@ export function useStepsMethods(props: {
       previewCtx.value.putImageData(history[currentIndex.value - 1], 0, 0)
       currentIndex.value--
       canRedo.value = true
+      undoingAction.value = 'brush'
+      brushSelectionSort.pop()
     } else {
       console.log('无法撤销，已在第一步')
     }
   }
 
   const brushRedo = () => {
-    if (!previewCtx.value) return
+    if (!previewCtx.value || !undoingAction.value) return
     if (canRedo.value) {
       previewCtx.value.putImageData(history[currentIndex.value + 1], 0, 0)
       currentIndex.value++
       canRedo.value = false
+      brushSelectionSort.push(undoingAction.value)
+      undoingAction.value = ''
     } else {
       console.log('无法重做')
     }
@@ -638,36 +661,43 @@ export function useStepsMethods(props: {
       clickCtx.value.clearRect(0, 0, clickCanvasRef.value.width, clickCanvasRef.value.height)
       currentIndex.value--
       canRedo.value = true
-      originX.value = pointAll.value[pointIndex.value - 1]?.x
-      originY.value = pointAll.value[pointIndex.value - 1]?.y
+      originPosition.x = pointAll.value[pointIndex.value - 1]?.x
+      originPosition.y = pointAll.value[pointIndex.value - 1]?.y
       pointIndex.value--
       pointArr.splice(0, pointArr.length, ...Array.from(findOriginArr(pointIndex.value) || []))
+      undoingAction.value = 'selection'
+      brushSelectionSort.pop()
     } else {
       console.log('无法撤销，已在第一步')
     }
   }
   const areaRedo = () => {
-    if (!previewCtx.value) return
+    if (!previewCtx.value || !undoingAction.value) return
     if (canRedo.value) {
       previewCtx.value.putImageData(history[currentIndex.value + 1], 0, 0)
       currentIndex.value++
       canRedo.value = false
-      originX.value = pointAll.value[pointIndex.value + 1]?.x
-      originY.value = pointAll.value[pointIndex.value + 1]?.y
+      originPosition.x = pointAll.value[pointIndex.value + 1]?.x
+      originPosition.y = pointAll.value[pointIndex.value + 1]?.y
       pointIndex.value++
       pointArr.splice(0, pointArr.length, ...Array.from(findOriginArr(pointIndex.value) || []))
+      brushSelectionSort.push(undoingAction.value)
+      undoingAction.value = ''
+    } else {
+      console.log('无法重做')
     }
   }
 
   const undo = () => {
-    if (!isArea.value) {
+    if (!brushSelectionSort.length) return
+    if (brushSelectionSort[brushSelectionSort.length - 1] === 'brush') {
       brushUndo()
     } else {
       areaUndo()
     }
   }
   const redo = () => {
-    if (!isArea.value) {
+    if (undoingAction.value === 'brush') {
       brushRedo()
     } else {
       areaRedo()

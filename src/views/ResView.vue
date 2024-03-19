@@ -15,26 +15,27 @@ import { onMounted, onUnmounted } from 'vue'
 const { clickCanvasRef, previewCanvasRef, imgCanvasRef, clickCtx, previewCtx, imgCtx } =
   useCanvasRefs()
 const { nowSelect, isArea, lineWidth, maskColor } = useCommonState()
-const { isDrawing, lastX, lastY, downPoint, linePoint, isShiftDown } = useBrushState()
-const { pointArr, originX, originY, pointGroup, pointAll, pointIndex } = useSelectionState()
-const { history, currentIndex, canRedo, maxHistorySteps } = useStepsState()
+const { isDrawing, lastPosition, downPoint, linePoint, isShiftDown } = useBrushState()
+const { pointArr, originPosition, pointGroup, pointAll, pointIndex } = useSelectionState()
+const { history, currentIndex, canRedo, maxHistorySteps, brushSelectionSort, undoingAction } =
+  useStepsState()
 const { getMaskAndOriginImg, setImg } = useCommonMethods()
 const { redo, undo, saveCurrent } = useStepsMethods({
   previewCanvasRef,
   previewCtx,
   clickCtx,
   clickCanvasRef,
-  isArea,
   pointGroup,
-  originX,
-  originY,
+  originPosition,
   pointAll,
   pointIndex,
   pointArr,
   history,
   currentIndex,
   canRedo,
-  maxHistorySteps
+  maxHistorySteps,
+  brushSelectionSort,
+  undoingAction
 })
 const { handleKeyDown, handleKeyUp, onPreviewMousedown, onPreviewMousemove, onPreviewMouseup } =
   useBrushMethods({
@@ -46,9 +47,9 @@ const { handleKeyDown, handleKeyUp, onPreviewMousedown, onPreviewMousemove, onPr
     isDrawing,
     isShiftDown,
     downPoint,
-    lastX,
-    lastY,
-    linePoint
+    lastPosition,
+    linePoint,
+    brushSelectionSort
   })
 const { onClick, onDblclick, drawLine } = useSelectionMethods({
   clickCanvasRef,
@@ -59,9 +60,9 @@ const { onClick, onDblclick, drawLine } = useSelectionMethods({
   pointArr,
   pointGroup,
   pointAll,
-  originX,
-  originY,
-  pointIndex
+  originPosition,
+  pointIndex,
+  brushSelectionSort
 })
 
 const save = () => {
@@ -94,7 +95,7 @@ onUnmounted(() => {
 
 <template>
   <button :class="{ active: !isArea }" @click="nowSelect = 'brush'">画笔</button>
-  <button :class="{ active: isArea }" @click="nowSelect = 'area'">选区</button>
+  <button :class="{ active: isArea }" @click="nowSelect = 'selection'">选区</button>
   <canvas
     id="clickCanvasRef"
     ref="clickCanvasRef"
