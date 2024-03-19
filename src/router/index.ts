@@ -28,6 +28,11 @@ const router = createRouter({
       path: '/res',
       name: 'res',
       component: () => import('../views/ResView.vue')
+    },
+    {
+      path: '/resArea',
+      name: 'resArea',
+      component: () => import('../views/ResAreaView.vue')
     }
   ]
 })

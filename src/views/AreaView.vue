@@ -12,9 +12,9 @@ type ResizePosition =
   | 'right-bottom'
   | ''
 
-const areaRef = ref()
-const boxRef = ref()
-const areaStyles = reactive({
+const cropAreaRef = ref()
+const cropWrapperRef = ref()
+const cropAreaStyles = reactive({
   width: '300px',
   height: '300px',
   left: '50px',
@@ -50,10 +50,17 @@ const moveStartPosition = reactive({
   y: 0
 })
 
+const rectSizePosition = reactive({
+  x: 50,
+  y: 50,
+  width: 300,
+  height: 300
+})
+
 const onMousedown = (event: any, position: ResizePosition) => {
   event.stopPropagation()
-  const rect = areaRef.value.getBoundingClientRect()
-  const boxRect = boxRef.value.getBoundingClientRect()
+  const rect = cropAreaRef.value.getBoundingClientRect()
+  const boxRect = cropWrapperRef.value.getBoundingClientRect()
   positionType.value = position
   switch (position) {
     case 'left': {
@@ -99,8 +106,8 @@ const onMousedown = (event: any, position: ResizePosition) => {
   }
 }
 const onMousemove = (event: any) => {
-  const rect = areaRef.value.getBoundingClientRect()
-  const boxRect = boxRef.value.getBoundingClientRect()
+  const rect = cropAreaRef.value.getBoundingClientRect()
+  const boxRect = cropWrapperRef.value.getBoundingClientRect()
   const mouseX = event.clientX
   const mouseY = event.clientY
   if (positionType.value) {
@@ -108,8 +115,8 @@ const onMousemove = (event: any) => {
       case 'left': {
         const width = Math.trunc(rect.right - mouseX)
         if (width <= maxSize.width) {
-          areaStyles.width = width + 'px'
-          width > 0 && (areaStyles.left = mouseX - boxRect.left + 'px')
+          cropAreaStyles.width = width + 'px'
+          width > 0 && (cropAreaStyles.left = mouseX - boxRect.left + 'px')
         }
         if (width < 0) {
           positionType.value = 'right'
@@ -119,7 +126,7 @@ const onMousemove = (event: any) => {
       case 'right': {
         const width = Math.trunc(mouseX - rect.left)
         if (width <= maxSize.width) {
-          areaStyles.width = width + 'px'
+          cropAreaStyles.width = width + 'px'
         }
         if (width < 0) {
           positionType.value = 'left'
@@ -129,8 +136,8 @@ const onMousemove = (event: any) => {
       case 'top': {
         const height = Math.trunc(rect.bottom - mouseY)
         if (height <= maxSize.height) {
-          areaStyles.height = height + 'px'
-          height > 0 && (areaStyles.top = mouseY - boxRect.top + 'px')
+          cropAreaStyles.height = height + 'px'
+          height > 0 && (cropAreaStyles.top = mouseY - boxRect.top + 'px')
         }
         if (height < 0) {
           positionType.value = 'bottom'
@@ -140,7 +147,7 @@ const onMousemove = (event: any) => {
       case 'bottom': {
         const height = Math.trunc(mouseY - rect.top)
         if (height <= maxSize.height) {
-          areaStyles.height = height + 'px'
+          cropAreaStyles.height = height + 'px'
         }
         if (height < 0) {
           positionType.value = 'top'
@@ -151,12 +158,12 @@ const onMousemove = (event: any) => {
         const width = Math.trunc(rect.right - mouseX)
         const height = Math.trunc(rect.bottom - mouseY)
         if (width <= maxSize.width) {
-          areaStyles.width = width + 'px'
-          width > 0 && (areaStyles.left = mouseX - boxRect.left + 'px')
+          cropAreaStyles.width = width + 'px'
+          width > 0 && (cropAreaStyles.left = mouseX - boxRect.left + 'px')
         }
         if (height <= maxSize.height) {
-          areaStyles.height = height + 'px'
-          height > 0 && (areaStyles.top = mouseY - boxRect.top + 'px')
+          cropAreaStyles.height = height + 'px'
+          height > 0 && (cropAreaStyles.top = mouseY - boxRect.top + 'px')
         }
         if (width < 0 && height > 0) {
           positionType.value = 'right-top'
@@ -173,11 +180,11 @@ const onMousemove = (event: any) => {
         const width = Math.trunc(rect.right - mouseX)
         const height = Math.trunc(mouseY - rect.top)
         if (width <= maxSize.width) {
-          areaStyles.width = width + 'px'
-          width > 0 && (areaStyles.left = mouseX - boxRect.left + 'px')
+          cropAreaStyles.width = width + 'px'
+          width > 0 && (cropAreaStyles.left = mouseX - boxRect.left + 'px')
         }
         if (height <= maxSize.height) {
-          areaStyles.height = height + 'px'
+          cropAreaStyles.height = height + 'px'
         }
         if (width < 0 && height > 0) {
           positionType.value = 'right-bottom'
@@ -194,11 +201,11 @@ const onMousemove = (event: any) => {
         const width = Math.trunc(mouseX - rect.left)
         const height = Math.trunc(rect.bottom - mouseY)
         if (width <= maxSize.width) {
-          areaStyles.width = width + 'px'
+          cropAreaStyles.width = width + 'px'
         }
         if (height <= maxSize.height) {
-          areaStyles.height = height + 'px'
-          height > 0 && (areaStyles.top = mouseY - boxRect.top + 'px')
+          cropAreaStyles.height = height + 'px'
+          height > 0 && (cropAreaStyles.top = mouseY - boxRect.top + 'px')
         }
         if (width < 0 && height > 0) {
           positionType.value = 'left-top'
@@ -215,10 +222,10 @@ const onMousemove = (event: any) => {
         const width = Math.trunc(mouseX - rect.left)
         const height = Math.trunc(mouseY - rect.top)
         if (width <= maxSize.width) {
-          areaStyles.width = width + 'px'
+          cropAreaStyles.width = width + 'px'
         }
         if (height <= maxSize.height) {
-          areaStyles.height = height + 'px'
+          cropAreaStyles.height = height + 'px'
         }
         if (width < 0 && height > 0) {
           positionType.value = 'left-bottom'
@@ -237,8 +244,8 @@ const onMousemove = (event: any) => {
   if (isMove.value) {
     const distanceX = mouseX - moveStartPosition.x
     const distanceY = mouseY - moveStartPosition.y
-    areaStyles.left = originPosition.x + distanceX + 'px'
-    areaStyles.top = originPosition.y + distanceY + 'px'
+    cropAreaStyles.left = originPosition.x + distanceX + 'px'
+    cropAreaStyles.top = originPosition.y + distanceY + 'px'
     onResize()
   }
 }
@@ -247,8 +254,8 @@ const onMouseup = () => {
 }
 
 const onAreaMousedown = (event: any) => {
-  const rect = areaRef.value.getBoundingClientRect()
-  const boxRect = boxRef.value.getBoundingClientRect()
+  const rect = cropAreaRef.value.getBoundingClientRect()
+  const boxRect = cropWrapperRef.value.getBoundingClientRect()
   moveStartPosition.x = event.clientX
   moveStartPosition.y = event.clientY
   originPosition.x = rect.left - boxRect.left
@@ -256,22 +263,15 @@ const onAreaMousedown = (event: any) => {
   isMove.value = true
 }
 
-const rectSizePosition = reactive({
-  x: 50,
-  y: 50,
-  width: 300,
-  height: 300
-})
-
 const onResize = () => {
-  const rect = areaRef.value.getBoundingClientRect()
-  const boxRect = boxRef.value.getBoundingClientRect()
+  const rect = cropAreaRef.value.getBoundingClientRect()
+  const boxRect = cropWrapperRef.value.getBoundingClientRect()
   rectSizePosition.width = rect.width
   rectSizePosition.height = rect.height
   rectSizePosition.x = rect.left - boxRect.left
   rectSizePosition.y = rect.top - boxRect.top
-  confirmBoxStyles.top = parseInt(areaStyles.top) + parseInt(areaStyles.height) + 2 + 'px'
-  confirmBoxStyles.left = parseInt(areaStyles.left) + parseInt(areaStyles.width) - 80 + 'px'
+  confirmBoxStyles.top = parseInt(cropAreaStyles.top) + parseInt(cropAreaStyles.height) + 2 + 'px'
+  confirmBoxStyles.left = parseInt(cropAreaStyles.left) + parseInt(cropAreaStyles.width) - 80 + 'px'
 }
 
 const onAreaMouseup = () => {
@@ -315,11 +315,11 @@ onMounted(() => {})
         mask="url(#cutoutMask)"
       />
     </svg>
-    <div ref="boxRef" class="box" @mousemove="onMousemove" @mouseup="onMouseup">
+    <div ref="cropWrapperRef" class="crop-wrapper" @mousemove="onMousemove" @mouseup="onMouseup">
       <div
-        class="area"
-        :style="{ cursor: isMove ? 'move' : 'auto', ...areaStyles }"
-        ref="areaRef"
+        class="crop-area"
+        :style="{ cursor: isMove ? 'move' : 'auto', ...cropAreaStyles }"
+        ref="cropAreaRef"
         @mousedown="onAreaMousedown"
         @mouseup="onAreaMouseup"
       >
@@ -364,7 +364,7 @@ onMounted(() => {})
   width: 800px;
   height: 600px;
 }
-.box {
+.crop-wrapper {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -384,7 +384,7 @@ onMounted(() => {})
     }
   }
 }
-.area {
+.crop-area {
   border: 1px dashed rgba(79, 175, 252, 1);
   box-sizing: border-box;
   position: absolute;
